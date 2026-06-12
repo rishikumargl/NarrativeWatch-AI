@@ -23,6 +23,7 @@ REQUIRED_VARS = [
     ("GOOGLE_CLOUD_PROJECT", "Google Cloud Project ID"),
     ("GOOGLE_CLOUD_LOCATION", "Google Cloud Location"),
     ("TAVILY_API_KEY", "Tavily API Key"),
+    ("NEWSAPI_KEY", "NewsAPI Key"),
     ("EMAIL_ADDRESS", "Email Address"),
     ("DATABASE_URL", "Database URL"),
     ("POSTGRES_USER", "PostgreSQL User"),

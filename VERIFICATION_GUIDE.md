@@ -28,11 +28,13 @@ cp .env.example .env
 
 # 5. Setup PostgreSQL (if not already running)
 # Option A: Local installation
-createdb narrativewatch
-psql -U postgres -d narrativewatch -c "CREATE EXTENSION vector;"
+psql -U postgres -c "CREATE EXTENSION vector;"  # Install pgvector extension
 
 # Option B: Docker
 docker run -p 5432:5432 -e POSTGRES_PASSWORD=postgres pgvector/pgvector:latest
+
+# NOTE: The database 'narrativewatch' will be created automatically on first run!
+# No need to manually create it in pgAdmin
 ```
 
 ---

@@ -76,12 +76,13 @@ class RAGPipeline:
 
             # Save to database
             session = self.db_client.get_session()
-            session.add(post)
-            session.commit()
-            session.close()
-
-            logger.info(f"✓ Ingested post: {post_id}")
-            return post_id
+            try:
+                session.add(post)
+                session.commit()
+                logger.info(f"✓ Ingested post: {post_id}")
+                return post_id
+            finally:
+                session.close()
 
         except Exception as e:
             logger.error(f"Error ingesting post {post_id}: {e}")
@@ -132,12 +133,13 @@ class RAGPipeline:
 
             # Save to database
             session = self.db_client.get_session()
-            session.add(page)
-            session.commit()
-            session.close()
-
-            logger.info(f"✓ Ingested page: {username}")
-            return page_id
+            try:
+                session.add(page)
+                session.commit()
+                logger.info(f"✓ Ingested page: {username}")
+                return page_id
+            finally:
+                session.close()
 
         except Exception as e:
             logger.error(f"Error ingesting page {username}: {e}")
@@ -182,12 +184,13 @@ class RAGPipeline:
 
             # Save to database
             session = self.db_client.get_session()
-            session.add(pattern)
-            session.commit()
-            session.close()
-
-            logger.info(f"✓ Ingested bias pattern: {pattern_id}")
-            return pattern_id
+            try:
+                session.add(pattern)
+                session.commit()
+                logger.info(f"✓ Ingested bias pattern: {pattern_id}")
+                return pattern_id
+            finally:
+                session.close()
 
         except Exception as e:
             logger.error(f"Error ingesting pattern {pattern_id}: {e}")
@@ -213,40 +216,40 @@ class RAGPipeline:
         """
         try:
             session = self.db_client.get_session()
-
-            # Use pgvector similarity search
-            results = (
-                session.query(
-                    InstagramPost,
-                    InstagramPost.embedding.cosine_distance(query_embedding).label(
-                        "distance"
-                    ),
-                )
-                .order_by("distance")
-                .limit(limit)
-                .all()
-            )
-
-            session.close()
-
-            # Convert distance to similarity (1 - distance)
-            similar_posts = []
-            for post, distance in results:
-                similarity = 1 - distance
-                if similarity >= similarity_threshold:
-                    similar_posts.append(
-                        {
-                            "post_id": post.post_id,
-                            "caption": post.caption,
-                            "page_username": post.page_username,
-                            "similarity": float(similarity),
-                            "trust_score": post.trust_score,
-                            "hashtags": post.hashtags,
-                        }
+            try:
+                # Use pgvector similarity search
+                results = (
+                    session.query(
+                        InstagramPost,
+                        InstagramPost.embedding.cosine_distance(query_embedding).label(
+                            "distance"
+                        ),
                     )
+                    .order_by("distance")
+                    .limit(limit)
+                    .all()
+                )
 
-            logger.info(f"Found {len(similar_posts)} similar posts")
-            return similar_posts
+                # Convert distance to similarity (1 - distance)
+                similar_posts = []
+                for post, distance in results:
+                    similarity = 1 - distance
+                    if similarity >= similarity_threshold:
+                        similar_posts.append(
+                            {
+                                "post_id": post.post_id,
+                                "caption": post.caption,
+                                "page_username": post.page_username,
+                                "similarity": float(similarity),
+                                "trust_score": post.trust_score,
+                                "hashtags": post.hashtags,
+                            }
+                        )
+
+                logger.info(f"Found {len(similar_posts)} similar posts")
+                return similar_posts
+            finally:
+                session.close()
 
         except Exception as e:
             logger.error(f"Error searching similar posts: {e}")
@@ -270,39 +273,39 @@ class RAGPipeline:
         """
         try:
             session = self.db_client.get_session()
-
-            # Use pgvector similarity search
-            results = (
-                session.query(
-                    InstagramPage,
-                    InstagramPage.embedding.cosine_distance(query_embedding).label(
-                        "distance"
-                    ),
-                )
-                .order_by("distance")
-                .limit(limit)
-                .all()
-            )
-
-            session.close()
-
-            # Convert distance to similarity
-            similar_pages = []
-            for page, distance in results:
-                similarity = 1 - distance
-                if similarity >= similarity_threshold:
-                    similar_pages.append(
-                        {
-                            "page_id": page.page_id,
-                            "username": page.username,
-                            "followers": page.followers,
-                            "similarity": float(similarity),
-                            "average_trust_score": page.average_trust_score,
-                        }
+            try:
+                # Use pgvector similarity search
+                results = (
+                    session.query(
+                        InstagramPage,
+                        InstagramPage.embedding.cosine_distance(query_embedding).label(
+                            "distance"
+                        ),
                     )
+                    .order_by("distance")
+                    .limit(limit)
+                    .all()
+                )
 
-            logger.info(f"Found {len(similar_pages)} similar pages")
-            return similar_pages
+                # Convert distance to similarity
+                similar_pages = []
+                for page, distance in results:
+                    similarity = 1 - distance
+                    if similarity >= similarity_threshold:
+                        similar_pages.append(
+                            {
+                                "page_id": page.page_id,
+                                "username": page.username,
+                                "followers": page.followers,
+                                "similarity": float(similarity),
+                                "average_trust_score": page.average_trust_score,
+                            }
+                        )
+
+                logger.info(f"Found {len(similar_pages)} similar pages")
+                return similar_pages
+            finally:
+                session.close()
 
         except Exception as e:
             logger.error(f"Error searching similar pages: {e}")
@@ -326,39 +329,39 @@ class RAGPipeline:
         """
         try:
             session = self.db_client.get_session()
-
-            # Use pgvector similarity search
-            results = (
-                session.query(
-                    BiasPattern,
-                    BiasPattern.pattern_embedding.cosine_distance(
-                        query_embedding
-                    ).label("distance"),
-                )
-                .order_by("distance")
-                .limit(limit)
-                .all()
-            )
-
-            session.close()
-
-            # Convert distance to similarity
-            similar_patterns = []
-            for pattern, distance in results:
-                similarity = 1 - distance
-                if similarity >= similarity_threshold:
-                    similar_patterns.append(
-                        {
-                            "pattern_id": pattern.pattern_id,
-                            "bias_category": pattern.bias_category,
-                            "indicators": pattern.indicators,
-                            "similarity": float(similarity),
-                            "severity_score": pattern.severity_score,
-                        }
+            try:
+                # Use pgvector similarity search
+                results = (
+                    session.query(
+                        BiasPattern,
+                        BiasPattern.pattern_embedding.cosine_distance(
+                            query_embedding
+                        ).label("distance"),
                     )
+                    .order_by("distance")
+                    .limit(limit)
+                    .all()
+                )
 
-            logger.info(f"Found {len(similar_patterns)} similar bias patterns")
-            return similar_patterns
+                # Convert distance to similarity
+                similar_patterns = []
+                for pattern, distance in results:
+                    similarity = 1 - distance
+                    if similarity >= similarity_threshold:
+                        similar_patterns.append(
+                            {
+                                "pattern_id": pattern.pattern_id,
+                                "bias_category": pattern.bias_category,
+                                "indicators": pattern.indicators,
+                                "similarity": float(similarity),
+                                "severity_score": pattern.severity_score,
+                            }
+                        )
+
+                logger.info(f"Found {len(similar_patterns)} similar bias patterns")
+                return similar_patterns
+            finally:
+                session.close()
 
         except Exception as e:
             logger.error(f"Error searching bias patterns: {e}")
@@ -370,9 +373,11 @@ class RAGPipeline:
         """Get total number of posts in RAG database."""
         try:
             session = self.db_client.get_session()
-            count = session.query(func.count(InstagramPost.post_id)).scalar()
-            session.close()
-            return count or 0
+            try:
+                count = session.query(func.count(InstagramPost.post_id)).scalar()
+                return count or 0
+            finally:
+                session.close()
         except Exception as e:
             logger.error(f"Error getting post count: {e}")
             return 0
@@ -381,9 +386,11 @@ class RAGPipeline:
         """Get total number of pages in RAG database."""
         try:
             session = self.db_client.get_session()
-            count = session.query(func.count(InstagramPage.page_id)).scalar()
-            session.close()
-            return count or 0
+            try:
+                count = session.query(func.count(InstagramPage.page_id)).scalar()
+                return count or 0
+            finally:
+                session.close()
         except Exception as e:
             logger.error(f"Error getting page count: {e}")
             return 0

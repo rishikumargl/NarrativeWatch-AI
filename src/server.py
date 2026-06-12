@@ -79,6 +79,18 @@ def analyze_post():
     try:
         data = request.get_json()
 
+        # Check if data is None
+        if data is None:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "error": "Request body must be valid JSON",
+                    }
+                ),
+                400,
+            )
+
         # Validate required fields
         required = ["post_id", "page_username", "caption"]
         if not all(field in data for field in required):
@@ -141,6 +153,18 @@ def analyze_page():
     """
     try:
         data = request.get_json()
+
+        # Check if data is None
+        if data is None:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "error": "Request body must be valid JSON",
+                    }
+                ),
+                400,
+            )
 
         # Validate required fields
         required = ["page_id", "username"]

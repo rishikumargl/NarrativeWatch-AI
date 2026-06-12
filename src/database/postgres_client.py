@@ -2,7 +2,7 @@
 
 import os
 from typing import Optional
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
 import logging
@@ -53,7 +53,7 @@ class PostgresClient:
         """Test database connection."""
         try:
             with self.engine.connect() as connection:
-                result = connection.execute("SELECT 1")
+                result = connection.execute(text("SELECT 1"))
                 logger.info("✓ PostgreSQL connection successful")
         except Exception as e:
             logger.error(f"✗ PostgreSQL connection failed: {e}")
@@ -82,7 +82,7 @@ class PostgresClient:
         try:
             with self.engine.connect() as connection:
                 result = connection.execute(
-                    "SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector')"
+                    text("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector')")
                 )
                 has_extension = result.scalar()
                 if has_extension:
@@ -99,7 +99,7 @@ class PostgresClient:
         """Install pgvector extension."""
         try:
             with self.engine.connect() as connection:
-                connection.execute("CREATE EXTENSION IF NOT EXISTS vector")
+                connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
                 connection.commit()
                 logger.info("✓ pgvector extension installed")
         except Exception as e:

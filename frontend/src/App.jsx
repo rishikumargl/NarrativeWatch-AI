@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import AnalysisForm from './components/AnalysisForm'
 import ResultsDisplay from './components/ResultsDisplay'
 import Dashboard from './components/Dashboard'
+import Hero from './components/Hero'
+import StatsSection from './components/StatsSection'
 import './styles/App.css'
 
 function App() {

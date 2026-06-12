@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Hero from './Hero'
+import StatsSection from './StatsSection'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -68,8 +70,13 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
+      <Hero />
+      <StatsSection />
+
+      {/* Dashboard Sections */}
+      <div className="dashboard-content">
       {/* Hero Section */}
-      <section className="hero-section">
+      <section className="hero-section" style={{display: 'none'}}>
         <div className="hero-content">
           <h2>Welcome to NarrativeWatch AI</h2>
           <p>Next-level intelligence platform for detecting misinformation, bias, and coordinated campaigns</p>
@@ -212,6 +219,7 @@ function Dashboard() {
           </Link>
         </div>
       </section>
+      </div>
     </div>
   )
 }

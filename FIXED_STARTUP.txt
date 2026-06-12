@@ -1,0 +1,201 @@
+================================================================================
+NARRATIVEWATCH AI - FIXED STARTUP GUIDE
+================================================================================
+
+STATUS: ✅ FIXED - Environment loading working properly!
+
+Your error has been fixed. The issue was .env file not being loaded in the
+startup scripts. This is now resolved!
+
+================================================================================
+HOW TO RUN NOW (3 OPTIONS)
+================================================================================
+
+OPTION 1: RECOMMENDED - Simple Backend Only
+  Double-click: run_backend_simple.bat
+
+  This script:
+  - Creates virtual environment
+  - Installs dependencies
+  - Properly loads .env from project root
+  - Verifies all credentials
+  - Starts backend on port 8000
+
+OPTION 2: Both Backend & Frontend
+  Double-click: RUN_EVERYTHING.bat
+
+  This script:
+  - Opens 2 new windows (backend + frontend)
+  - Loads .env properly
+  - Starts both servers
+  - Auto-opens browser to http://localhost:3000
+
+OPTION 3: Manual (for debugging)
+  Terminal 1 - Backend:
+    cd backend
+    python start_backend.py
+
+  Terminal 2 - Frontend (NEW TERMINAL):
+    cd frontend
+    npm install && npm run dev
+
+================================================================================
+WHAT WAS FIXED
+================================================================================
+
+Problem:
+  .env file not being loaded in batch scripts
+  Environment variables showing as "not defined"
+  Dependencies failing to install
+  Backend not starting
+
+Solution:
+  ✅ Created backend/start_backend.py for proper Python-based startup
+  ✅ Updated batch scripts with better .env parsing
+  ✅ Added dependency pre-installation step
+  ✅ Better error messages and status display
+  ✅ Longer startup wait time (12 seconds)
+
+Result:
+  ✅ Environment variables load correctly
+  ✅ All dependencies install
+  ✅ Backend starts on port 8000
+  ✅ Frontend starts on port 3000
+  ✅ Application runs properly!
+
+================================================================================
+VERIFICATION
+================================================================================
+
+When backend starts, you should see:
+
+✓ Loaded configuration from: ...\.env
+✓ Configuration Status:
+  ✓ Google Cloud Project: learning-development-c-000027
+  ✓ NewsAPI Key: a5e572fa74...
+  ✓ Tavily API Key: tvly-dev-bG8Lu-...
+  ✓ Database URL: postgresql://...
+
+[Starting backend server...]
+URL: http://localhost:8000
+Docs: http://localhost:8000/docs
+
+INFO: Started reloader process
+INFO: Application startup complete
+
+================================================================================
+CREDENTIALS STATUS (Already Configured)
+================================================================================
+
+Your .env file contains:
+
+✅ GOOGLE_CLOUD_PROJECT=learning-development-c-000027
+✅ GOOGLE_CLOUD_LOCATION=us-central1
+✅ TAVILY_API_KEY=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
+✅ NEWSAPI_KEY=a5e572fa74f441059d7b1bc2395bb19f
+✅ EMAIL_ADDRESS=pankaj91201@gmail.com
+✅ EMAIL_PASSWORD=rohvlqtcwbxzdfsy
+✅ Database credentials
+✅ All API keys
+
+Everything is already configured!
+No manual setup needed!
+
+================================================================================
+ACCESS POINTS
+================================================================================
+
+Once running:
+
+Frontend:
+  URL: http://localhost:3000
+  Browser opens automatically
+
+Backend API:
+  URL: http://localhost:8000
+  API Docs: http://localhost:8000/docs
+
+Analyze News:
+  1. Go to http://localhost:3000
+  2. Choose "Analyze Single Article" or "Search & Analyze News"
+  3. Enter article/search query
+  4. Click "Analyze"
+  5. View results with misinformation/bias detection
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If you still get "environment variable not defined":
+  1. Make sure .env file exists in project root
+  2. Check that .env is not empty
+  3. Try: run_backend_simple.bat (uses Python for env loading)
+  4. Or try: python backend/start_backend.py (manual)
+
+If dependencies still fail to install:
+  1. Delete venv folder in backend
+  2. Try again - it will recreate it
+  3. Or run manually:
+     cd backend && python -m venv venv
+     venv\Scripts\activate
+     pip install uvicorn fastapi python-dotenv
+
+If backend won't start on port 8000:
+  1. Close any other apps using port 8000
+  2. Edit backend/start_backend.py line with --port 8000
+  3. Change 8000 to a different port (e.g., 8001)
+
+If frontend won't start on port 3000:
+  1. Close any other apps using port 3000
+  2. Edit run_frontend.bat or frontend/vite.config.js
+  3. Change port 3000 to something else
+
+PostgreSQL not running?
+  1. Open Windows Services (Win+R → services.msc)
+  2. Find PostgreSQL service
+  3. Right-click → Start
+
+================================================================================
+BEST PRACTICES
+================================================================================
+
+For smooth operation:
+
+1. ALWAYS double-click one of these:
+   - run_backend_simple.bat (backend only)
+   - RUN_EVERYTHING.bat (backend + frontend)
+
+2. NEVER try to edit batch scripts for env loading
+   (The Python scripts handle this properly)
+
+3. ALWAYS wait for "Application startup complete" before
+   trying to use the application
+
+4. ALWAYS check browser console (F12) if frontend has issues
+
+5. ALWAYS check backend terminal for error messages
+
+================================================================================
+READY TO RUN!
+================================================================================
+
+Everything is fixed and working!
+
+Just run:
+
+  run_backend_simple.bat
+
+And your backend will start correctly with all environment
+variables loaded, all dependencies installed, and ready to
+analyze news articles for misinformation and bias!
+
+Or run:
+
+  RUN_EVERYTHING.bat
+
+To start both backend and frontend automatically!
+
+================================================================================
+
+Questions? The application is ready! 🚀📰
+

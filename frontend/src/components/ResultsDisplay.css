@@ -4,11 +4,11 @@
 }
 
 .results-card {
-  background: linear-gradient(135deg, var(--surface-light) 0%, var(--surface) 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f7f8fc 100%);
   border-radius: 1.5rem;
   overflow: hidden;
-  box-shadow: var(--glow), var(--shadow-lg);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(91, 143, 199, 0.15);
   animation: slideUp 0.6s ease-out;
 }
 
@@ -36,27 +36,27 @@
   align-items: center;
   padding: 2rem;
   border-bottom: 2px solid var(--border);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(91, 143, 199, 0.04) 0%, transparent 100%);
 }
 
 .trust-score-section.risk-low {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
-  border-bottom-color: rgba(16, 185, 129, 0.5);
+  background: linear-gradient(135deg, rgba(124, 179, 66, 0.08) 0%, transparent 100%);
+  border-bottom-color: rgba(124, 179, 66, 0.3);
 }
 
 .trust-score-section.risk-medium {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%);
-  border-bottom-color: rgba(245, 158, 11, 0.5);
+  background: linear-gradient(135deg, rgba(218, 165, 32, 0.08) 0%, transparent 100%);
+  border-bottom-color: rgba(218, 165, 32, 0.3);
 }
 
 .trust-score-section.risk-high {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
-  border-bottom-color: rgba(239, 68, 68, 0.5);
+  background: linear-gradient(135deg, rgba(217, 118, 118, 0.08) 0%, transparent 100%);
+  border-bottom-color: rgba(217, 118, 118, 0.3);
 }
 
 .trust-score-section.risk-critical {
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, transparent 100%);
-  border-bottom-color: rgba(220, 38, 38, 0.5);
+  background: linear-gradient(135deg, rgba(199, 99, 99, 0.08) 0%, transparent 100%);
+  border-bottom-color: rgba(199, 99, 99, 0.3);
 }
 
 .trust-score-circle {
@@ -67,25 +67,14 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(91, 143, 199, 0.08) 0%, transparent 100%);
   border: 3px solid;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.2), inset 0 0 30px rgba(99, 102, 241, 0.05);
+  box-shadow: 0 0 15px rgba(91, 143, 199, 0.15), inset 0 0 15px rgba(91, 143, 199, 0.03);
   animation: glow 3s ease-in-out infinite;
 }
 
-.trust-score-section.risk-low .trust-score-circle {
-  border-color: var(--success);
-}
-
-.trust-score-section.risk-medium .trust-score-circle {
-  border-color: var(--warning);
-}
-
-.trust-score-section.risk-high .trust-score-circle,
-.trust-score-section.risk-critical .trust-score-circle {
-  border-color: var(--danger);
-}
+/* Remove explicit color assignment - use CSS defaults */
 
 .score-value {
   font-size: 3rem;
@@ -93,18 +82,7 @@
   line-height: 1;
 }
 
-.trust-score-section.risk-low .score-value {
-  color: var(--success);
-}
-
-.trust-score-section.risk-medium .score-value {
-  color: var(--warning);
-}
-
-.trust-score-section.risk-high .score-value,
-.trust-score-section.risk-critical .score-value {
-  color: var(--danger);
-}
+/* Values colored by risk */
 
 .score-label {
   font-size: 0.85rem;
@@ -152,30 +130,30 @@
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1.25rem;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(91, 143, 199, 0.03) 0%, transparent 100%);
   transition: all 0.3s ease;
 }
 
 .finding-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 2px 8px rgba(91, 143, 199, 0.15);
   transform: translateY(-2px);
 }
 
 .finding-card.finding-low {
-  border-color: rgba(16, 185, 129, 0.3);
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+  border-color: rgba(124, 179, 66, 0.25);
+  background: linear-gradient(135deg, rgba(124, 179, 66, 0.06) 0%, transparent 100%);
 }
 
 .finding-card.finding-medium {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
+  border-color: rgba(218, 165, 32, 0.25);
+  background: linear-gradient(135deg, rgba(218, 165, 32, 0.06) 0%, transparent 100%);
 }
 
 .finding-card.finding-high,
 .finding-card.finding-critical {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+  border-color: rgba(217, 118, 118, 0.25);
+  background: linear-gradient(135deg, rgba(217, 118, 118, 0.06) 0%, transparent 100%);
 }
 
 .finding-header {
@@ -267,7 +245,7 @@
 .recommendations-section {
   padding: 2rem;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(91, 143, 199, 0.08) 0%, transparent 100%);
   border-left: 4px solid var(--primary);
 }
 
@@ -300,7 +278,7 @@
 /* Metadata Section */
 .metadata-section {
   padding: 1.5rem 2rem;
-  background-color: var(--bg-secondary);
+  background-color: #f9fafb;
 }
 
 .metadata-section h4 {

@@ -62,3 +62,36 @@ class SynthesisAgent(BaseAgent):
 5. Generate actionable recommendations
 
 Provide comprehensive analysis with clear recommendations."""
+
+    def run(self, input_data):
+        """
+        Execute synthesis of agent findings.
+
+        Args:
+            input_data: Findings from all agents
+
+        Returns:
+            Synthesized report with trust score and recommendations
+        """
+        if not self.validate_input(input_data):
+            return {"status": "error", "message": "Invalid input"}
+
+        try:
+            if self.executor:
+                result = self.executor.invoke({"input": str(input_data)})
+            else:
+                result = self._synthesize_findings_mock(input_data)
+
+            return self.format_output(result)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def _synthesize_findings_mock(self, input_data):
+        """Mock implementation for testing."""
+        return {
+            "trust_score": 32,
+            "risk_level": "high",
+            "risk_flags": ["misinformation", "bot_activity"],
+            "summary": "Analysis complete",
+            "recommendation": "MONITOR"
+        }

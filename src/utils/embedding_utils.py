@@ -258,3 +258,20 @@ class EmbeddingUtils:
             return True
         except Exception:
             return False
+
+
+# Singleton instance and factory function
+_embedding_client = None
+
+
+def get_embedding_client() -> EmbeddingUtils:
+    """
+    Get or create the embedding client singleton.
+
+    Returns:
+        EmbeddingUtils instance
+    """
+    global _embedding_client
+    if _embedding_client is None:
+        _embedding_client = EmbeddingUtils()
+    return _embedding_client

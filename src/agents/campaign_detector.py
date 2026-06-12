@@ -49,3 +49,34 @@ class CampaignDetectorAgent(BaseAgent):
 5. Map account relationships
 
 Provide campaign clusters with coordination confidence."""
+
+    def run(self, input_data):
+        """
+        Execute campaign detection.
+
+        Args:
+            input_data: Pages or posts to analyze
+
+        Returns:
+            Detection results with campaign clusters
+        """
+        if not self.validate_input(input_data):
+            return {"status": "error", "message": "Invalid input"}
+
+        try:
+            if self.executor:
+                result = self.executor.invoke({"input": str(input_data)})
+            else:
+                result = self._detect_campaigns_mock(input_data)
+
+            return self.format_output(result)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def _detect_campaigns_mock(self, input_data):
+        """Mock implementation for testing."""
+        return {
+            "campaigns_detected": 0,
+            "campaign_clusters": [],
+            "coordination_evidence": []
+        }

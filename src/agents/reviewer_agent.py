@@ -77,3 +77,38 @@ class ReviewerAgent(BaseAgent):
 
 Return JSON with:
 {"status": "APPROVED" or "REJECTED", "feedback": "specific feedback for improvement"}"""
+
+    def run(self, input_data):
+        """
+        Execute review of synthesis output.
+
+        Args:
+            input_data: Synthesis output to review
+
+        Returns:
+            Review result with status and feedback
+        """
+        if not self.validate_input(input_data):
+            return {"status": "error", "message": "Invalid input"}
+
+        try:
+            if self.executor:
+                result = self.executor.invoke({"input": str(input_data)})
+            else:
+                result = self._review_synthesis_mock(input_data)
+
+            return self.format_output(result)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+    def _review_synthesis_mock(self, input_data):
+        """Mock implementation for testing."""
+        return {
+            "status": "APPROVED",
+            "completeness_score": 0.95,
+            "accuracy_score": 0.92,
+            "relevance_score": 0.94,
+            "clarity_score": 0.91,
+            "overall_score": 0.93,
+            "feedback": "Analysis is complete and accurate"
+        }

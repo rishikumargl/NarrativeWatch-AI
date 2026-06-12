@@ -21,21 +21,63 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class BaseAgent(ABC):
-    """Base class for all agents in the NarrativeWatch system."""
+class AgentConfig:
+    """Configuration for agents."""
 
-    def __init__(self, name: str, description: str, model_name: str = "gemini-2.5-pro"):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        temperature: float = 0.7,
+        max_iterations: int = 5,
+        model_name: str = "gemini-2.5-pro",
+        timeout: int = 300
+    ):
         """
-        Initialize base agent.
+        Initialize agent configuration.
 
         Args:
             name: Agent name
             description: Agent description
+            temperature: LLM temperature (0-1)
+            max_iterations: Max iterations for agent execution
             model_name: LLM model to use
+            timeout: Timeout in seconds
         """
         self.name = name
         self.description = description
+        self.temperature = temperature
+        self.max_iterations = max_iterations
         self.model_name = model_name
+        self.timeout = timeout
+
+
+class BaseAgent(ABC):
+    """Base class for all agents in the NarrativeWatch system."""
+
+    def __init__(self, config: Optional['AgentConfig'] = None, name: str = None, description: str = None, model_name: str = "gemini-2.5-pro"):
+        """
+        Initialize base agent.
+
+        Args:
+            config: AgentConfig instance (takes precedence over individual args)
+            name: Agent name
+            description: Agent description
+            model_name: LLM model to use
+        """
+        if config:
+            self.name = config.name
+            self.description = config.description
+            self.model_name = config.model_name
+            self.temperature = config.temperature
+            self.max_iterations = config.max_iterations
+        else:
+            self.name = name
+            self.description = description
+            self.model_name = model_name
+            self.temperature = 0.7
+            self.max_iterations = 5
+
         self.llm = self._initialize_llm()
         self.tools = self._define_tools()
         self.executor = self._create_executor()
@@ -44,7 +86,7 @@ class BaseAgent(ABC):
     def _initialize_llm(self):
         """Initialize the language model."""
         if ChatVertexAI:
-            return ChatVertexAI(model_name=self.model_name, temperature=0.7)
+            return ChatVertexAI(model_name=self.model_name, temperature=self.temperature)
         else:
             logger.warning("Vertex AI not available, using mock LLM")
             return None
@@ -75,7 +117,7 @@ class BaseAgent(ABC):
             agent=agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=5,
+            max_iterations=self.max_iterations,
             handle_parsing_errors=True
         )
         return executor

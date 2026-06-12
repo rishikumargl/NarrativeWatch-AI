@@ -14,6 +14,17 @@ class Config:
     ENV = os.getenv("ENV", "development")
     DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 
+    # Application
+    APP_NAME = "NarrativeWatch AI"
+    APP_VERSION = "1.0.0"
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
+
+    # API Server
+    API_HOST = os.getenv("API_HOST", "0.0.0.0")
+    API_PORT = int(os.getenv("API_PORT", "8000"))
+    API_WORKERS = int(os.getenv("API_WORKERS", "4"))
+    API_RELOAD = os.getenv("API_RELOAD", "False").lower() == "true"
+
     # LLM Configuration
     VERTEX_AI_PROJECT = os.getenv("VERTEX_AI_PROJECT", "narrativewatch-ai")
     VERTEX_AI_LOCATION = os.getenv("VERTEX_AI_LOCATION", "us-central1")
@@ -68,3 +79,7 @@ class Config:
 def get_config() -> Config:
     """Get configuration instance."""
     return Config()
+
+
+# Module-level instance for easy import
+settings = get_config()

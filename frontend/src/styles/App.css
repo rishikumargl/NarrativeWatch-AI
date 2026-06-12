@@ -56,7 +56,7 @@ body {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   border-bottom: 1px solid #1e40af;
   color: #ffffff;
-  padding: 2.5rem 1rem;
+  padding: 1.5rem 1rem;
   text-align: center;
   box-shadow: var(--shadow);
   position: relative;
@@ -82,16 +82,16 @@ body {
 }
 
 .title {
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: #ffffff;
   animation: fadeIn 0.8s ease-out;
   letter-spacing: -0.5px;
 }
 
 .subtitle {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   opacity: 0.95;
   font-weight: 500;
   color: #ffffff;

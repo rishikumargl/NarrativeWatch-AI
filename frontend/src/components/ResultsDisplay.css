@@ -4,11 +4,11 @@
 }
 
 .results-card {
-  background: #ffffff;
+  background: #f8faff;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-md);
-  border: 1px solid var(--border);
+  border: 1px solid #dbeafe;
   animation: slideUp 0.6s ease-out;
 }
 

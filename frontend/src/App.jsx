@@ -5,7 +5,9 @@ import ResultsDisplay from './components/ResultsDisplay'
 import Dashboard from './components/Dashboard'
 import Hero from './components/Hero'
 import StatsSection from './components/StatsSection'
+import Home from './pages/Home'
 import './styles/App.css'
+import './styles/index.css'
 
 function App() {
   const [analysisResult, setAnalysisResult] = useState(null)
@@ -69,7 +71,8 @@ function App() {
 
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analyze" element={
               <div className="analyze-container">
                 <AnalysisForm onAnalysis={handleAnalysis} loading={loading} />

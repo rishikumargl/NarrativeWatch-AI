@@ -1,1 +1,1 @@
-"""Test suite for NarrativeWatch AI."""
+"""Tests module for NarrativeWatch AI."""

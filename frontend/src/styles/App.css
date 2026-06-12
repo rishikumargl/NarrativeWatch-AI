@@ -52,9 +52,9 @@ body {
 
 /* Header */
 .header {
-  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-  border-bottom: 1px solid #bfdbfe;
-  color: var(--text-primary);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-bottom: 1px solid #1e40af;
+  color: #ffffff;
   padding: 2.5rem 1rem;
   text-align: center;
   box-shadow: var(--shadow);
@@ -84,15 +84,15 @@ body {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  color: var(--primary);
+  color: #ffffff;
   animation: fadeIn 0.8s ease-out;
 }
 
 .subtitle {
   font-size: 1.1rem;
-  opacity: 0.9;
+  opacity: 0.95;
   font-weight: 400;
-  color: var(--text-secondary);
+  color: #ffffff;
   animation: fadeIn 1s ease-out 0.2s backwards;
 }
 

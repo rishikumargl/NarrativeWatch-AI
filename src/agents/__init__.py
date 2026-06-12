@@ -1,14 +1,13 @@
-"""Agent modules for NarrativeWatch AI."""
+"""Agents module for NarrativeWatch AI."""
 
-from .research_agent import ResearchAgent, get_research_agent
-from .rag_agent import RAGAgent, get_rag_agent
-from .orchestrator import Orchestrator, get_orchestrator
+from src.agents.base_agent import BaseAgent
+from src.agents.content_analyzer import ContentAnalyzerAgent
+from src.agents.bias_detector import BiasDetectorAgent
+from src.agents.bot_detector import BotDetectorAgent
 
 __all__ = [
-    "ResearchAgent",
-    "get_research_agent",
-    "RAGAgent",
-    "get_rag_agent",
-    "Orchestrator",
-    "get_orchestrator",
+    "BaseAgent",
+    "ContentAnalyzerAgent",
+    "BiasDetectorAgent",
+    "BotDetectorAgent",
 ]

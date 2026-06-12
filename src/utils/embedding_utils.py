@@ -1,359 +1,260 @@
-"""Embedding generation utilities for vector storage."""
+"""Embedding utilities for NarrativeWatch AI using Vertex AI."""
 
-import os
-import logging
-from typing import List, Optional, Union
-from functools import lru_cache
+from typing import List, Optional
 import numpy as np
-from vertexai.language_models import TextEmbeddingModel
-from datetime import datetime, timedelta
+import logging
+
+try:
+    from src.config import get_config
+except ImportError:
+    from config import get_config
 
 logger = logging.getLogger(__name__)
+config = get_config()
 
 
-class EmbeddingCache:
-    """Simple cache for embeddings to avoid redundant API calls."""
+class EmbeddingUtils:
+    """Utilities for generating and handling embeddings."""
 
-    def __init__(self, ttl_hours: int = 24):
-        """Initialize embedding cache.
+    def __init__(self):
+        """Initialize embedding utilities."""
+        try:
+            from langchain_google_vertexai.embeddings import VertexAIEmbeddings
+            self.embeddings = VertexAIEmbeddings(
+                model_name=config.EMBEDDING_MODEL,
+                project=config.VERTEX_AI_PROJECT,
+                location=config.VERTEX_AI_LOCATION
+            )
+            self.embedding_dim = config.VECTOR_DIMENSION
+            logger.info(f"Initialized Vertex AI embeddings (dim={self.embedding_dim})")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Vertex AI embeddings: {e}")
+            logger.info("Using mock embeddings for testing")
+            self.embeddings = None
+            self.embedding_dim = config.VECTOR_DIMENSION
 
-        Args:
-            ttl_hours: Time-to-live for cached embeddings in hours
+    def generate_embedding(self, text: str) -> Optional[List[float]]:
         """
-        self.cache: dict = {}
-        self.ttl = timedelta(hours=ttl_hours)
-        logger.info(f"✓ Embedding cache initialized (TTL: {ttl_hours}h)")
-
-    def get(self, text: str) -> Optional[List[float]]:
-        """Get embedding from cache if valid.
+        Generate embedding for a single text.
 
         Args:
-            text: Text to look up
+            text: Input text
 
         Returns:
-            Embedding or None if not cached or expired
+            Embedding vector or None if failed
         """
-        if text not in self.cache:
+        if not text or not isinstance(text, str):
+            logger.warning("Invalid input for embedding generation")
             return None
 
-        embedding, timestamp = self.cache[text]
-        if datetime.utcnow() - timestamp > self.ttl:
-            del self.cache[text]
+        try:
+            if self.embeddings:
+                embedding = self.embeddings.embed_query(text)
+                return embedding
+            else:
+                # Mock embedding for testing
+                return self._mock_embedding(text)
+        except Exception as e:
+            logger.error(f"Failed to generate embedding: {e}")
             return None
 
-        return embedding
-
-    def set(self, text: str, embedding: List[float]):
-        """Cache an embedding.
-
-        Args:
-            text: Original text
-            embedding: Vector embedding
+    def batch_embedding(self, texts: List[str]) -> List[Optional[List[float]]]:
         """
-        self.cache[text] = (embedding, datetime.utcnow())
-
-    def clear(self):
-        """Clear all cached embeddings."""
-        self.cache.clear()
-        logger.info("✓ Embedding cache cleared")
-
-    def size(self) -> int:
-        """Get number of cached embeddings."""
-        return len(self.cache)
-
-
-class EmbeddingClient:
-    """Client for generating text embeddings using Vertex AI."""
-
-    def __init__(
-        self,
-        model_name: str = "text-embedding-005",
-        project_id: Optional[str] = None,
-        location: Optional[str] = None,
-        use_cache: bool = True,
-    ):
-        """Initialize embedding client.
+        Generate embeddings for multiple texts.
 
         Args:
-            model_name: Vertex AI embedding model name
-            project_id: Google Cloud project ID
-            location: GCP region
-            use_cache: Whether to cache embeddings
-        """
-        self.model_name = model_name
-        self.project_id = project_id or os.getenv("VERTEX_AI_PROJECT_ID")
-        self.location = location or os.getenv("VERTEX_AI_LOCATION", "us-central1")
-        self.use_cache = use_cache
-
-        if not self.project_id:
-            raise ValueError("VERTEX_AI_PROJECT_ID environment variable not set")
-
-        # Initialize model
-        try:
-            import vertexai
-            vertexai.init(project=self.project_id, location=self.location)
-            self.model = TextEmbeddingModel.from_pretrained(model_name)
-            logger.info(f"✓ Embedding model initialized: {model_name}")
-        except Exception as e:
-            logger.error(f"Failed to initialize embedding model: {e}")
-            raise
-
-        # Initialize cache
-        self.cache = EmbeddingCache() if use_cache else None
-
-    def embed_text(self, text: str) -> List[float]:
-        """Generate embedding for a single text.
-
-        Args:
-            text: Text to embed
-
-        Returns:
-            Embedding vector (1536 dimensions)
-        """
-        # Check cache
-        if self.cache:
-            cached = self.cache.get(text)
-            if cached:
-                logger.debug(f"✓ Retrieved cached embedding for text ({len(text)} chars)")
-                return cached
-
-        # Generate embedding
-        try:
-            logger.info(f"Embedding text ({len(text)} chars)...")
-            embeddings = self.model.get_embeddings([text])
-            embedding = embeddings[0].values
-
-            # Cache result
-            if self.cache:
-                self.cache.set(text, embedding)
-
-            logger.info(f"✓ Generated embedding ({len(embedding)} dims)")
-            return embedding
-
-        except Exception as e:
-            logger.error(f"Embedding error: {e}")
-            raise
-
-    def embed_batch(
-        self,
-        texts: List[str],
-        batch_size: int = 100,
-    ) -> List[List[float]]:
-        """Generate embeddings for multiple texts efficiently.
-
-        Args:
-            texts: List of texts to embed
-            batch_size: Max texts per batch (max 100)
+            texts: List of input texts
 
         Returns:
             List of embedding vectors
         """
-        batch_size = min(batch_size, 100)  # API limit
-        embeddings = []
+        if not texts:
+            return []
 
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            logger.info(f"Embedding batch {i // batch_size + 1} ({len(batch)} texts)...")
+        try:
+            if self.embeddings:
+                embeddings = self.embeddings.embed_documents(texts)
+                return embeddings
+            else:
+                # Mock embeddings for testing
+                return [self._mock_embedding(text) for text in texts]
+        except Exception as e:
+            logger.error(f"Failed to generate batch embeddings: {e}")
+            return [None] * len(texts)
 
-            # Check cache for this batch
-            batch_embeddings = []
-            uncached_indices = []
-            uncached_texts = []
-
-            for idx, text in enumerate(batch):
-                if self.cache:
-                    cached = self.cache.get(text)
-                    if cached:
-                        batch_embeddings.append(cached)
-                        continue
-
-                uncached_indices.append(idx)
-                uncached_texts.append(text)
-
-            # Generate embeddings for uncached texts
-            if uncached_texts:
-                try:
-                    generated = self.model.get_embeddings(uncached_texts)
-                    generated_embeddings = [e.values for e in generated]
-
-                    # Insert back in correct positions and cache
-                    for orig_idx, gen_idx in enumerate(uncached_indices):
-                        embedding = generated_embeddings[orig_idx]
-                        batch_embeddings.insert(gen_idx, embedding)
-
-                        if self.cache:
-                            self.cache.set(uncached_texts[orig_idx], embedding)
-
-                except Exception as e:
-                    logger.error(f"Batch embedding error: {e}")
-                    raise
-
-            embeddings.extend(batch_embeddings)
-            logger.info(f"✓ Batch complete ({len(batch)} embeddings)")
-
-        return embeddings
-
-    def embed_instagram_post(
-        self,
-        caption: str,
-        hashtags: Optional[List[str]] = None,
-        content_type: Optional[str] = None,
-    ) -> List[float]:
-        """Generate embedding for Instagram post.
-
-        Combines caption, hashtags, and content type for rich context.
+    def cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
+        """
+        Calculate cosine similarity between two vectors.
 
         Args:
-            caption: Post caption
-            hashtags: List of hashtags
-            content_type: Type of content (image, video, etc.)
+            vec1: First vector
+            vec2: Second vector
 
         Returns:
-            Embedding vector
+            Cosine similarity (0-1)
         """
-        # Build rich text representation
-        parts = [caption] if caption else []
-
-        if hashtags:
-            parts.append(" ".join(hashtags))
-
-        if content_type:
-            parts.append(f"[{content_type}]")
-
-        combined_text = " ".join(parts)
-        return self.embed_text(combined_text)
-
-    def embed_instagram_page(
-        self,
-        username: str,
-        biography: Optional[str] = None,
-        content_focus: Optional[List[str]] = None,
-    ) -> List[float]:
-        """Generate embedding for Instagram page.
-
-        Combines username, bio, and content focus.
-
-        Args:
-            username: Page username
-            biography: Page biography
-            content_focus: List of content topics
-
-        Returns:
-            Embedding vector
-        """
-        parts = [username]
-
-        if biography:
-            parts.append(biography)
-
-        if content_focus:
-            parts.append(" ".join(content_focus))
-
-        combined_text = " ".join(parts)
-        return self.embed_text(combined_text)
-
-    def embed_campaign(
-        self,
-        narrative_theme: str,
-        hashtags: Optional[List[str]] = None,
-    ) -> List[float]:
-        """Generate embedding for campaign.
-
-        Args:
-            narrative_theme: Campaign narrative
-            hashtags: Campaign hashtags
-
-        Returns:
-            Embedding vector
-        """
-        parts = [narrative_theme]
-
-        if hashtags:
-            parts.append(" ".join(hashtags))
-
-        combined_text = " ".join(parts)
-        return self.embed_text(combined_text)
-
-    def similarity(
-        self,
-        embedding1: List[float],
-        embedding2: List[float],
-    ) -> float:
-        """Calculate cosine similarity between two embeddings.
-
-        Args:
-            embedding1: First embedding
-            embedding2: Second embedding
-
-        Returns:
-            Similarity score (0-1)
-        """
-        arr1 = np.array(embedding1)
-        arr2 = np.array(embedding2)
-
-        # Cosine similarity
-        dot_product = np.dot(arr1, arr2)
-        norm1 = np.linalg.norm(arr1)
-        norm2 = np.linalg.norm(arr2)
-
-        if norm1 == 0 or norm2 == 0:
+        if not vec1 or not vec2:
             return 0.0
 
-        similarity = dot_product / (norm1 * norm2)
-        return float(similarity)
+        try:
+            arr1 = np.array(vec1, dtype=np.float32)
+            arr2 = np.array(vec2, dtype=np.float32)
 
-    def check_health(self) -> bool:
-        """Check if embedding service is working.
+            dot_product = np.dot(arr1, arr2)
+            norm1 = np.linalg.norm(arr1)
+            norm2 = np.linalg.norm(arr2)
+
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+
+            similarity = dot_product / (norm1 * norm2)
+            # Ensure result is in [0, 1]
+            return float(np.clip(similarity, 0, 1))
+        except Exception as e:
+            logger.error(f"Failed to calculate cosine similarity: {e}")
+            return 0.0
+
+    def euclidean_distance(self, vec1: List[float], vec2: List[float]) -> float:
+        """
+        Calculate Euclidean distance between two vectors.
+
+        Args:
+            vec1: First vector
+            vec2: Second vector
 
         Returns:
-            True if service is accessible
+            Euclidean distance
         """
+        if not vec1 or not vec2:
+            return float('inf')
+
         try:
-            embedding = self.embed_text("test")
-            is_healthy = embedding and len(embedding) == 1536
-            logger.info(f"{'✓' if is_healthy else '✗'} Embedding service health: {is_healthy}")
-            return is_healthy
+            arr1 = np.array(vec1, dtype=np.float32)
+            arr2 = np.array(vec2, dtype=np.float32)
+            distance = np.linalg.norm(arr1 - arr2)
+            return float(distance)
         except Exception as e:
-            logger.error(f"Embedding service health check failed: {e}")
+            logger.error(f"Failed to calculate euclidean distance: {e}")
+            return float('inf')
+
+    def find_similar_vectors(
+        self,
+        query_vector: List[float],
+        vectors: List[List[float]],
+        top_k: int = 5,
+        metric: str = 'cosine'
+    ) -> List[tuple]:
+        """
+        Find top-k similar vectors to query vector.
+
+        Args:
+            query_vector: Query vector
+            vectors: List of vectors to search
+            top_k: Number of top results to return
+            metric: Similarity metric ('cosine' or 'euclidean')
+
+        Returns:
+            List of (index, similarity_score) tuples, sorted by similarity
+        """
+        if not query_vector or not vectors:
+            return []
+
+        similarities = []
+        for idx, vec in enumerate(vectors):
+            if metric == 'cosine':
+                sim = self.cosine_similarity(query_vector, vec)
+            else:  # euclidean
+                dist = self.euclidean_distance(query_vector, vec)
+                sim = 1 / (1 + dist)  # Convert distance to similarity
+
+            similarities.append((idx, sim))
+
+        # Sort by similarity (descending)
+        similarities.sort(key=lambda x: x[1], reverse=True)
+        return similarities[:top_k]
+
+    def normalize_vector(self, vector: List[float]) -> List[float]:
+        """
+        Normalize vector to unit length.
+
+        Args:
+            vector: Input vector
+
+        Returns:
+            Normalized vector
+        """
+        if not vector:
+            return []
+
+        try:
+            arr = np.array(vector, dtype=np.float32)
+            norm = np.linalg.norm(arr)
+            if norm == 0:
+                return vector
+            return (arr / norm).tolist()
+        except Exception as e:
+            logger.error(f"Failed to normalize vector: {e}")
+            return vector
+
+    def average_embeddings(self, embeddings: List[List[float]]) -> Optional[List[float]]:
+        """
+        Calculate average of multiple embeddings.
+
+        Args:
+            embeddings: List of embedding vectors
+
+        Returns:
+            Average embedding vector
+        """
+        if not embeddings or any(e is None for e in embeddings):
+            return None
+
+        try:
+            arr = np.array(embeddings, dtype=np.float32)
+            avg = np.mean(arr, axis=0)
+            return avg.tolist()
+        except Exception as e:
+            logger.error(f"Failed to average embeddings: {e}")
+            return None
+
+    def _mock_embedding(self, text: str, dim: int = 1536) -> List[float]:
+        """
+        Generate deterministic mock embedding based on text hash (for testing).
+
+        Args:
+            text: Input text
+            dim: Embedding dimension
+
+        Returns:
+            Mock embedding vector
+        """
+        import hashlib
+        hash_value = int(hashlib.md5(text.encode()).hexdigest(), 16)
+        np.random.seed(hash_value % (2**32))
+        return np.random.randn(dim).tolist()
+
+    def validate_embedding(self, embedding: List[float]) -> bool:
+        """
+        Validate embedding vector.
+
+        Args:
+            embedding: Embedding to validate
+
+        Returns:
+            True if valid, False otherwise
+        """
+        if not embedding or not isinstance(embedding, list):
             return False
 
-    def cache_stats(self) -> dict:
-        """Get cache statistics.
+        if len(embedding) != self.embedding_dim:
+            logger.warning(f"Embedding dimension mismatch: {len(embedding)} vs {self.embedding_dim}")
+            return False
 
-        Returns:
-            Cache stats (size, enabled)
-        """
-        if not self.cache:
-            return {"enabled": False, "size": 0}
-
-        return {
-            "enabled": True,
-            "size": self.cache.size(),
-        }
-
-
-# Global embedding client instance
-_client: Optional[EmbeddingClient] = None
-
-
-def get_embedding_client() -> EmbeddingClient:
-    """Get or create global embedding client."""
-    global _client
-    if _client is None:
-        _client = EmbeddingClient()
-    return _client
-
-
-def embed_text(text: str) -> List[float]:
-    """Convenience function to embed text using global client."""
-    return get_embedding_client().embed_text(text)
-
-
-def embed_batch(texts: List[str], batch_size: int = 100) -> List[List[float]]:
-    """Convenience function to batch embed texts using global client."""
-    return get_embedding_client().embed_batch(texts, batch_size)
-
-
-def similarity(embedding1: List[float], embedding2: List[float]) -> float:
-    """Convenience function to calculate similarity using global client."""
-    return get_embedding_client().similarity(embedding1, embedding2)
+        try:
+            # Check if all values are valid floats
+            for val in embedding:
+                if not isinstance(val, (int, float)) or np.isnan(val) or np.isinf(val):
+                    return False
+            return True
+        except Exception:
+            return False

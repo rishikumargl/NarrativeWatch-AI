@@ -1,176 +1,122 @@
-"""Base agent class for all specialized agents."""
+"""Base agent class for all NarrativeWatch AI agents."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
-from pydantic import BaseModel, Field
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.tools import Tool
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_google_vertexai import ChatVertexAI
-from src.logger import setup_logger
-from src.config import settings
+from typing import List, Dict, Any, Optional
+import logging
 
+try:
+    from langchain_core.tools import Tool
+    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+    from langchain_google_vertexai import ChatVertexAI
+    from langchain.agents import AgentExecutor, create_tool_calling_agent
+except ImportError:
+    # Mock imports for testing
+    Tool = None
+    ChatPromptTemplate = None
+    MessagesPlaceholder = None
+    ChatVertexAI = None
+    AgentExecutor = None
+    create_tool_calling_agent = None
 
-class AgentConfig(BaseModel):
-    """Configuration for an agent."""
-    name: str
-    description: str
-    tools: Optional[list[Tool]] = Field(default_factory=list)
-    max_iterations: int = Field(default=5)
-    verbose: bool = Field(default=False)
-    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
-
-
-class AgentResult(BaseModel):
-    """Result from agent execution."""
-    agent_name: str
-    status: str = "success"  # success, error, timeout
-    output: Any
-    error: Optional[str] = None
-    iterations: int = 0
+logger = logging.getLogger(__name__)
 
 
 class BaseAgent(ABC):
-    """
-    Base agent class for all specialized agents in the system.
+    """Base class for all agents in the NarrativeWatch system."""
 
-    All agents inherit from this class and must implement:
-    - _define_tools(): Define tools available to the agent
-    - _get_system_prompt(): Define the system prompt
-    """
-
-    def __init__(self, config: AgentConfig):
+    def __init__(self, name: str, description: str, model_name: str = "gemini-2.5-pro"):
         """
-        Initialize agent with configuration.
+        Initialize base agent.
 
         Args:
-            config: AgentConfig instance with agent settings
+            name: Agent name
+            description: Agent description
+            model_name: LLM model to use
         """
-        self.config = config
-        self.logger = setup_logger(f"agents.{config.name}")
+        self.name = name
+        self.description = description
+        self.model_name = model_name
         self.llm = self._initialize_llm()
-        self.executor = None
+        self.tools = self._define_tools()
+        self.executor = self._create_executor()
+        logger.info(f"Initialized {self.name} agent")
 
-        self.logger.info(f"Initializing agent: {config.name}")
+    def _initialize_llm(self):
+        """Initialize the language model."""
+        if ChatVertexAI:
+            return ChatVertexAI(model_name=self.model_name, temperature=0.7)
+        else:
+            logger.warning("Vertex AI not available, using mock LLM")
+            return None
 
-    def _initialize_llm(self) -> ChatVertexAI:
-        """Initialize the LLM client."""
-        if not settings.VERTEX_AI_PROJECT_ID:
-            raise ValueError("VERTEX_AI_PROJECT_ID not configured")
-
-        return ChatVertexAI(
-            project=settings.VERTEX_AI_PROJECT_ID,
-            location=settings.VERTEX_AI_LOCATION,
-            model_name=settings.VERTEX_AI_MODEL,
-            temperature=self.config.temperature,
-            verbose=self.config.verbose,
-        )
-
-    @abstractmethod
-    def _define_tools(self) -> list[Tool]:
+    def _define_tools(self) -> List:
         """
-        Define tools available to this agent.
+        Define tools for this agent. Override in subclasses.
 
         Returns:
             List of Tool objects
         """
         return []
 
-    @abstractmethod
-    def _get_system_prompt(self) -> str:
-        """
-        Get system prompt for this agent.
-
-        Returns:
-            System prompt string
-        """
-        return f"You are {self.config.name}. {self.config.description}"
-
-    def _create_executor(self) -> AgentExecutor:
-        """Create and return the agent executor."""
-        tools = self._define_tools()
-        system_prompt = self._get_system_prompt()
+    def _create_executor(self):
+        """Create agent executor with tools."""
+        if not ChatPromptTemplate:
+            logger.warning("LangChain not available, executor will be None")
+            return None
 
         prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
+            ("system", f"You are {self.name}. {self.description}"),
             ("human", "{input}"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ])
 
-        agent = create_tool_calling_agent(self.llm, tools, prompt)
+        agent = create_tool_calling_agent(self.llm, self.tools, prompt)
         executor = AgentExecutor.from_agent_and_tools(
             agent=agent,
-            tools=tools,
-            verbose=self.config.verbose,
-            max_iterations=self.config.max_iterations,
-            handle_parsing_errors=True,
+            tools=self.tools,
+            verbose=True,
+            max_iterations=5,
+            handle_parsing_errors=True
         )
         return executor
 
-    def run(self, input_data: str) -> AgentResult:
+    @abstractmethod
+    def run(self, input_data: Any) -> Dict[str, Any]:
         """
-        Run the agent with given input.
+        Execute agent. Must be implemented by subclasses.
 
         Args:
-            input_data: Input string for the agent
+            input_data: Input data for the agent
 
         Returns:
-            AgentResult with output, status, and metadata
+            Dict with agent results
         """
-        try:
-            if not self.executor:
-                self.executor = self._create_executor()
-
-            self.logger.info(f"Running agent: {self.config.name}")
-            self.logger.debug(f"Input: {input_data}")
-
-            result = self.executor.invoke({"input": input_data})
-
-            self.logger.info(f"Agent {self.config.name} completed successfully")
-
-            return AgentResult(
-                agent_name=self.config.name,
-                status="success",
-                output=result,
-                iterations=result.get("iterations", 0) if isinstance(result, dict) else 0,
-            )
-
-        except TimeoutError as e:
-            self.logger.error(f"Agent {self.config.name} timed out: {e}")
-            return AgentResult(
-                agent_name=self.config.name,
-                status="timeout",
-                output=None,
-                error=str(e),
-            )
-
-        except Exception as e:
-            self.logger.error(f"Agent {self.config.name} error: {e}", exc_info=True)
-            return AgentResult(
-                agent_name=self.config.name,
-                status="error",
-                output=None,
-                error=str(e),
-            )
+        pass
 
     def validate_input(self, input_data: Any) -> bool:
+        """Validate input data. Override in subclasses for custom validation."""
+        return input_data is not None
+
+    def format_output(self, result: Any) -> Dict[str, Any]:
+        """Format agent output. Override in subclasses for custom formatting."""
+        return {"status": "success", "result": result}
+
+    def invoke(self, input_data: str) -> Dict[str, Any]:
         """
-        Validate input for this agent. Override in subclasses for custom validation.
+        Invoke agent with error handling.
 
         Args:
-            input_data: Input to validate
+            input_data: Input for the agent
 
         Returns:
-            True if valid, False otherwise
+            Agent output
         """
-        if not isinstance(input_data, str):
-            self.logger.warning(f"Invalid input type: {type(input_data)}")
-            return False
-        if not input_data.strip():
-            self.logger.warning("Empty input")
-            return False
-        return True
+        try:
+            if not self.validate_input(input_data):
+                return {"status": "error", "message": "Invalid input"}
 
-    def __repr__(self) -> str:
-        """String representation of the agent."""
-        return f"<{self.__class__.__name__}(name={self.config.name})>"
+            result = self.executor.invoke({"input": str(input_data)})
+            return self.format_output(result)
+        except Exception as e:
+            logger.error(f"Error in {self.name}: {str(e)}", exc_info=True)
+            return {"status": "error", "message": str(e)}

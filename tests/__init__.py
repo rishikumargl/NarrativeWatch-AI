@@ -1,1 +1,1 @@
-"""Test module for NarrativeWatch AI."""
+"""Tests module for NarrativeWatch AI."""

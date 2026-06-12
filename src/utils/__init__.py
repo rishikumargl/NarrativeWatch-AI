@@ -1,19 +1,9 @@
-"""Utility modules for NarrativeWatch AI."""
+"""Utilities module for NarrativeWatch AI."""
 
-from .embedding_utils import (
-    EmbeddingClient,
-    EmbeddingCache,
-    get_embedding_client,
-    embed_text,
-    embed_batch,
-    similarity,
-)
+from src.utils.text_processor import TextProcessor
+from src.utils.embedding_utils import EmbeddingUtils
 
 __all__ = [
-    "EmbeddingClient",
-    "EmbeddingCache",
-    "get_embedding_client",
-    "embed_text",
-    "embed_batch",
-    "similarity",
+    "TextProcessor",
+    "EmbeddingUtils",
 ]

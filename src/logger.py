@@ -1,67 +1,51 @@
 """Logging configuration for NarrativeWatch AI."""
 
-import sys
 import logging
-from pathlib import Path
+import os
 from logging.handlers import RotatingFileHandler
-from src.config import settings
+
+try:
+    from src.config import get_config
+    config = get_config()
+except ImportError:
+    from config import get_config
+    config = get_config()
 
 
-def setup_logger(
-    name: str = __name__,
-    level: str = None,
-) -> logging.Logger:
-    """
-    Set up a logger with both file and console handlers.
-
-    Args:
-        name: Logger name (typically __name__)
-        level: Log level (defaults to settings.LOG_LEVEL)
-
-    Returns:
-        Configured logger instance
-    """
-    if level is None:
-        level = settings.LOG_LEVEL
-
+def setup_logging(name: str) -> logging.Logger:
+    """Setup logging for a module."""
     logger = logging.getLogger(name)
-    logger.setLevel(getattr(logging, level.upper()))
-
-    # Avoid duplicate handlers
-    if logger.handlers:
-        return logger
+    logger.setLevel(config.LOG_LEVEL)
 
     # Create logs directory if it doesn't exist
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
+    log_dir = os.path.dirname(config.LOG_FILE)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(getattr(logging, level.upper()))
-    console_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
-
-    # File handler with rotation
-    log_file = log_dir / f"{name.replace('.', '_')}.log"
+    # File handler (rotating)
     file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=10_485_760,  # 10 MB
+        config.LOG_FILE,
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5
     )
-    file_handler.setLevel(getattr(logging, level.upper()))
-    file_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    file_handler.setFormatter(file_formatter)
-    logger.addHandler(file_handler)
+    file_handler.setLevel(config.LOG_LEVEL)
+
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(config.LOG_LEVEL)
+
+    # Formatter
+    formatter = logging.Formatter(config.LOG_FORMAT)
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    # Add handlers to logger
+    if not logger.handlers:
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
 
     return logger
 
 
-# Module-level logger
-logger = setup_logger(__name__)
+# Create module logger
+logger = setup_logging(__name__)

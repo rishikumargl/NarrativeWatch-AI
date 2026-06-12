@@ -2,6 +2,8 @@
 REM NarrativeWatch AI - Master Startup Script
 REM This script starts both backend and frontend servers
 
+setlocal enabledelayedexpansion
+
 echo.
 echo ================================================================================
 echo             NARRATIVEWATCH AI - STARTING APPLICATION
@@ -16,37 +18,44 @@ if not exist ".env" (
     exit /b 1
 )
 
-echo [✓] Configuration file found
+echo [✓] Configuration file found (.env)
 echo.
 
-REM Display configuration
-for /f "delims== tokens=1,2" %%A in (.env) do (
-    if "%%A"=="NEWSAPI_KEY" (
-        set "newsapi=%%B"
-    )
-    if "%%A"=="GOOGLE_CLOUD_PROJECT" (
-        set "gcp=%%B"
+REM Display configuration from .env
+for /f "usebackq delims=" %%x in (.env) do (
+    set "line=%%x"
+    if not "!line:~0,1!"=="#" (
+        if not "!line!"=="" (
+            for /f "delims== tokens=1*" %%A in ("!line!") do (
+                if "%%A"=="NEWSAPI_KEY" (
+                    set "newsapi=%%B"
+                )
+                if "%%A"=="GOOGLE_CLOUD_PROJECT" (
+                    set "gcp=%%B"
+                )
+            )
+        )
     )
 )
 
 if defined newsapi (
-    echo [✓] NewsAPI Key configured
+    echo [✓] NewsAPI Key: Configured
 ) else (
-    echo [!] NewsAPI Key not found
+    echo [!] NewsAPI Key: NOT FOUND in .env
 )
 
 if defined gcp (
-    echo [✓] Google Cloud Project configured: %gcp%
+    echo [✓] Google Cloud Project: %gcp%
 ) else (
-    echo [!] Google Cloud Project not found
+    echo [!] Google Cloud Project: NOT FOUND in .env
 )
 
 echo.
 echo [*] Starting backend server in new window...
 start "NarrativeWatch - Backend (Port 8000)" /D "%CD%" cmd /k "call run_backend.bat"
 
-echo [*] Waiting 3 seconds...
-timeout /t 3 /nobreak
+echo [*] Waiting 4 seconds...
+timeout /t 4 /nobreak
 
 echo [*] Starting frontend server in new window...
 start "NarrativeWatch - Frontend (Port 3000)" /D "%CD%" cmd /k "call run_frontend.bat"
@@ -65,8 +74,8 @@ echo [*] If not, manually run:
 echo     - run_backend.bat (for backend on port 8000)
 echo     - run_frontend.bat (for frontend on port 3000)
 echo.
-echo Waiting 10 seconds before opening browser...
-timeout /t 10 /nobreak
+echo Waiting 12 seconds before opening browser (servers starting up)...
+timeout /t 12 /nobreak
 
 echo [*] Opening application in browser...
 start http://localhost:3000
@@ -77,4 +86,6 @@ echo [✓] Check the backend and frontend windows for server output
 echo.
 echo Press any key to close this window...
 pause >nul
+
+endlocal
 

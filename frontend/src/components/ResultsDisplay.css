@@ -20,6 +20,8 @@
 .results-header h2 {
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .results-url {
@@ -117,8 +119,10 @@
 }
 
 .findings-title {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   margin-bottom: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
 .findings-list {
@@ -182,8 +186,10 @@
 }
 
 .finding-title h4 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   margin-bottom: 0.25rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
 .finding-category {
@@ -250,9 +256,11 @@
 }
 
 .recommendations-title {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   margin-bottom: 1rem;
   color: var(--primary);
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
 .recommendations-list {

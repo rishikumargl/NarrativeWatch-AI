@@ -449,6 +449,42 @@ Keep response concise (150 words max).
 
         return f"Moderate coordination detected. {len(coordination_scores)} page pairs show similarity > 0.5."
 
+    def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute RAG agent workflow.
+
+        Args:
+            input_data: Input data with post/page content
+
+        Returns:
+            RAG analysis results
+        """
+        try:
+            post_id = input_data.get("post_id", "")
+            content = input_data.get("content", "")
+            page_username = input_data.get("page_username", "")
+
+            if not content:
+                return {"status": "error", "message": "content required"}
+
+            if post_id:
+                result = self.analyze_post(post_id=post_id, content=content)
+            elif page_username:
+                result = self.analyze_page(username=page_username, content=content)
+            else:
+                result = self.analyze_content(content=content)
+
+            return {
+                "status": "success",
+                "analysis": result.analysis,
+                "similar_posts_count": len(result.insights),
+                "confidence_score": result.confidence_score,
+                "recommendations": result.recommendations
+            }
+        except Exception as e:
+            logger.error(f"RAG agent error: {e}", exc_info=True)
+            return {"status": "error", "message": str(e)}
+
 
 def get_rag_agent() -> RAGAgent:
     """Get RAG agent instance."""

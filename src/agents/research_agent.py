@@ -341,6 +341,44 @@ Provide a concise 2-3 sentence summary.
         ][:5]
 
 
+    def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute research agent workflow.
+
+        Args:
+            input_data: Input data with narrative theme and hashtags
+
+        Returns:
+            Research findings and report
+        """
+        try:
+            narrative_theme = input_data.get("narrative_theme", "")
+            hashtags = input_data.get("hashtags", [])
+            depth = input_data.get("depth", "standard")
+
+            if not narrative_theme:
+                return {"status": "error", "message": "narrative_theme required"}
+
+            report = self.research_narrative(
+                narrative_theme=narrative_theme,
+                hashtags=hashtags,
+                depth=depth
+            )
+
+            return {
+                "status": "success",
+                "narrative_theme": report.narrative_theme,
+                "findings_count": len(report.findings),
+                "summary": report.summary,
+                "credibility_assessment": report.credibility_assessment,
+                "supporting_evidence": report.supporting_evidence,
+                "contradictions_found": report.contradictions_found
+            }
+        except Exception as e:
+            logger.error(f"Research agent error: {e}", exc_info=True)
+            return {"status": "error", "message": str(e)}
+
+
 def get_research_agent() -> ResearchAgent:
     """Get research agent instance."""
     return ResearchAgent()

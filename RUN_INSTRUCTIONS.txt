@@ -1,0 +1,220 @@
+================================================================================
+NARRATIVEWATCH AI - RUN INSTRUCTIONS
+================================================================================
+
+REQUIRED API KEYS (Must get these first):
+================================================================================
+
+1. VERTEX AI (Google Cloud)
+   - Go to: https://console.cloud.google.com/
+   - Create project
+   - Enable Vertex AI API
+   - Create service account
+   - Download JSON key file
+   - Set: GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
+   - Also set: VERTEX_AI_PROJECT and VERTEX_AI_LOCATION in .env
+
+2. TAVILY SEARCH API
+   - Go to: https://www.tavily.com/
+   - Sign up for free account
+   - Get API key
+   - Set: TAVILY_API_KEY in .env
+
+3. INSTAGRAM GRAPH API
+   - Go to: https://developers.facebook.com/
+   - Create app
+   - Request Instagram Graph API access
+   - Generate access token
+   - Set: INSTAGRAM_API_TOKEN in .env
+
+4. TWITTER API (Optional)
+   - Go to: https://developer.twitter.com/
+   - Apply for access
+   - Get Bearer token
+   - Set: TWITTER_API_KEY in .env
+
+================================================================================
+QUICK START - 5 STEPS
+================================================================================
+
+STEP 1: Setup PostgreSQL
+--------
+Windows:
+  1. Download PostgreSQL 15+ from https://www.postgresql.org/download/
+  2. Install with default settings
+  3. Open pgAdmin (http://localhost:5050)
+  4. Create database: narrativewatch
+  5. Enable pgvector extension:
+     CREATE EXTENSION IF NOT EXISTS vector;
+
+macOS:
+  brew install postgresql@15
+  brew services start postgresql@15
+  createdb narrativewatch
+  psql narrativewatch -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+Linux:
+  sudo apt-get install postgresql postgresql-contrib
+  sudo apt-get install postgresql-15-pgvector
+  sudo service postgresql start
+  sudo -u postgres createdb narrativewatch
+
+
+STEP 2: Create .env File
+--------
+cp .env.example .env
+
+Edit .env and fill in:
+  GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+  VERTEX_AI_PROJECT=your-project-id
+  TAVILY_API_KEY=your-tavily-key
+  INSTAGRAM_API_TOKEN=your-instagram-token
+  POSTGRES_USER=postgres
+  POSTGRES_PASSWORD=postgres
+  DATABASE_URL=postgresql://postgres:postgres@localhost:5432/narrativewatch
+
+
+STEP 3: Start Backend
+--------
+cd backend
+
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+python scripts/init_db.py
+
+python -m uvicorn src.app:app --reload --port 8000
+
+
+STEP 4: Start Frontend (in new terminal)
+--------
+cd frontend
+
+npm install
+npm run dev
+
+
+STEP 5: Open Application
+--------
+Frontend: http://localhost:3000
+Backend API: http://localhost:8000
+API Docs: http://localhost:8000/docs
+
+
+================================================================================
+VERIFICATION
+================================================================================
+
+Backend Health Check:
+  curl http://localhost:8000/health
+
+Frontend:
+  Open http://localhost:3000 in browser
+
+Full Workflow:
+  1. Go to http://localhost:3000
+  2. Click "Analyze Post"
+  3. Enter Instagram post URL
+  4. Click "Analyze"
+  5. Wait for results
+  6. Check backend terminal for agent logs
+
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+PostgreSQL not running?
+  Windows: Start PostgreSQL service from Services app
+  macOS: brew services start postgresql@15
+  Linux: sudo service postgresql start
+
+Database not found?
+  psql -U postgres -c "CREATE DATABASE narrativewatch;"
+  psql -U postgres -d narrativewatch -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+Module not found error?
+  Make sure you're in backend directory: cd backend
+  Activate venv: source venv/bin/activate
+  Install deps: pip install -r requirements.txt
+
+Port already in use?
+  Backend port 8000: netstat -ano | findstr :8000 (Windows) or lsof -i :8000 (Mac/Linux)
+  Frontend port 3000: npm run dev -- --port 3001
+
+API key errors?
+  Check .env file has correct values
+  For Vertex AI, verify key file exists and is readable
+  Test with: python -c "from google.cloud import aiplatform; print('OK')"
+
+
+================================================================================
+LOGS & MONITORING
+================================================================================
+
+Backend logs: backend/logs/narrativewatch.log
+
+View agent execution in terminal:
+  - ContentAnalyzerAgent started
+  - RAGAgent retrieved X similar posts
+  - ResearchAgent found Y sources
+  - BiasDetectorAgent detected bias
+  - BotDetectorAgent detected bots
+  - CampaignDetectorAgent found campaigns
+  - SynthesisAgent created report
+  - ReviewerAgent approved result
+
+Frontend debug: Open browser DevTools (F12) > Console tab
+
+
+================================================================================
+ENVIRONMENT VARIABLES QUICK REFERENCE
+================================================================================
+
+VERTEX_AI_PROJECT=narrativewatch-ai
+VERTEX_AI_LOCATION=us-central1
+LLM_MODEL=gemini-2.5-pro
+EMBEDDING_MODEL=text-embedding-005
+
+TAVILY_API_KEY=[your key]
+INSTAGRAM_API_TOKEN=[your token]
+TWITTER_API_KEY=[optional]
+
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/narrativewatch
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+
+API_HOST=0.0.0.0
+API_PORT=8000
+LOG_LEVEL=INFO
+
+CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+
+
+================================================================================
+FULL DOCUMENTATION
+================================================================================
+
+For detailed instructions, see: QUICK_START_GUIDE.md
+
+Key documents:
+  - README.md - Project overview
+  - QUICK_START_GUIDE.md - Complete setup guide
+  - backend/README.md - Backend documentation
+  - DEPLOYMENT_READINESS_AUDIT.md - Production checklist
+  - PROJECT_STRUCTURE.md - Project organization
+
+
+================================================================================
+SUCCESS! You're ready to go! 🚀
+================================================================================
+
+Once both servers are running:
+  ✓ Frontend: http://localhost:3000
+  ✓ Backend: http://localhost:8000
+  ✓ API Docs: http://localhost:8000/docs
+
+Test the system by analyzing an Instagram post on the frontend!

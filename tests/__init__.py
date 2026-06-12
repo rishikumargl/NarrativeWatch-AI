@@ -1,3 +1,1 @@
-"""Test modules for NarrativeWatch AI."""
-
-__all__ = []
+"""Test module for NarrativeWatch AI."""

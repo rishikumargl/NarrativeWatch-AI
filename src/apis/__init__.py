@@ -1,3 +1,11 @@
-"""External API integrations."""
+"""External API clients for NarrativeWatch AI."""
 
-__all__ = []
+from .tavily_api import TavilyAPI
+from .instagram_api import InstagramAPI
+from .llm_client import LLMClient
+
+__all__ = [
+    "TavilyAPI",
+    "InstagramAPI",
+    "LLMClient",
+]

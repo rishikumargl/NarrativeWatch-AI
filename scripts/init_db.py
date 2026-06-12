@@ -27,8 +27,8 @@ def init_database():
     logger.info("=" * 80)
 
     try:
-        # Create client and connect
-        logger.info("\n1. Connecting to PostgreSQL...")
+        # Create client and connect (will auto-create database if needed)
+        logger.info("\n1. Connecting to PostgreSQL and creating database if needed...")
         client = PostgresClient()
 
         # Check pgvector extension

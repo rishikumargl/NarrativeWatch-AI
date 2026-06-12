@@ -30,6 +30,9 @@ class PostgresClient:
 
         logger.info(f"Connecting to PostgreSQL: {self.database_url.split('@')[1]}")
 
+        # Automatically create database if it doesn't exist
+        self._create_database_if_not_exists()
+
         # Create engine with connection pooling
         self.engine = create_engine(
             self.database_url,
@@ -48,6 +51,40 @@ class PostgresClient:
         )
 
         self._test_connection()
+
+    def _create_database_if_not_exists(self):
+        """Create database if it doesn't exist."""
+        try:
+            # Parse database URL
+            from urllib.parse import urlparse
+            parsed = urlparse(self.database_url)
+            db_name = parsed.path.lstrip('/')
+
+            # Connect to default 'postgres' database to create the target database
+            default_url = f"postgresql://{parsed.username}:{parsed.password}@{parsed.hostname}:{parsed.port or 5432}/postgres"
+            default_engine = create_engine(default_url)
+
+            with default_engine.connect() as conn:
+                # Check if database exists
+                result = conn.execute(
+                    text("SELECT 1 FROM pg_database WHERE datname = :db_name"),
+                    {"db_name": db_name}
+                )
+                db_exists = result.scalar() is not None
+
+                if not db_exists:
+                    # Create database
+                    conn.execute(text(f"CREATE DATABASE {db_name}"))
+                    conn.commit()
+                    logger.info(f"✓ Created database: {db_name}")
+                else:
+                    logger.info(f"✓ Database already exists: {db_name}")
+
+            default_engine.dispose()
+
+        except Exception as e:
+            logger.warning(f"Could not auto-create database: {e}")
+            logger.info("Attempting to connect to existing database...")
 
     def _test_connection(self):
         """Test database connection."""

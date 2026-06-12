@@ -6,9 +6,13 @@ import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import spacy
 from textblob import TextBlob
 import logging
+
+try:
+    import spacy
+except ImportError:
+    spacy = None
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +33,15 @@ except LookupError:
     nltk.download('wordnet')
 
 # Load spaCy model
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    logger.warning("spaCy model not found. Run: python -m spacy download en_core_web_sm")
-    nlp = None
+nlp = None
+if spacy:
+    try:
+        nlp = spacy.load("en_core_web_sm")
+    except OSError:
+        logger.warning("spaCy model not found. Run: python -m spacy download en_core_web_sm")
+        nlp = None
+else:
+    logger.warning("spaCy not installed. Run: pip install spacy")
 
 
 class TextProcessor:

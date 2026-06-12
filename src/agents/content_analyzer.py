@@ -4,15 +4,8 @@ from typing import Dict, Any, List
 from datetime import datetime
 import logging
 
-try:
-    from src.agents.base_agent import BaseAgent
-    from src.utils.text_processor import TextProcessor
-except ImportError:
-    from base_agent import BaseAgent
-    from sys import path
-    from os import dirname
-    path.insert(0, dirname(dirname(__file__)))
-    from utils.text_processor import TextProcessor
+from src.agents.base_agent import BaseAgent
+from src.utils.text_processor import TextProcessor
 
 logger = logging.getLogger(__name__)
 

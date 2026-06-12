@@ -2,28 +2,23 @@
 
 ## Overview
 
-This guide covers deploying the NarrativeWatch AI backend to production. The system is containerized with Docker and can be deployed to any platform supporting Docker containers.
+This guide covers deploying the NarrativeWatch AI backend to production. The system runs as a standard Flask application with a PostgreSQL database.
 
 ---
 
 ## Prerequisites
 
-### Local Development
+### Local Development & Production
 - Python 3.10+
 - PostgreSQL 14+ with pgvector extension
 - pip (Python package manager)
-
-### Docker Deployment
-- Docker 20.10+
-- docker-compose 1.29+
 - 2GB RAM minimum
 - 5GB storage minimum
 
-### Production Requirements
+### External Services Required
 - Google Cloud Project with Vertex AI API enabled
 - Instagram Graph API credentials
 - Tavily Search API key
-- PostgreSQL database (or managed service)
 
 ---
 
@@ -49,11 +44,26 @@ pip install -r requirements.txt
 ### 4. Configure Environment
 ```bash
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your credentials:
+# - VERTEX_AI_PROJECT_ID
+# - DATABASE_URL (PostgreSQL connection string)
+# - INSTAGRAM_ACCESS_TOKEN
+# - TAVILY_API_KEY
 ```
 
-### 5. Initialize Database
+### 5. Setup PostgreSQL Database
+
 ```bash
+# Install PostgreSQL 14+ with pgvector extension
+# https://github.com/pgvector/pgvector
+
+# Create database
+createdb -U postgres narrativewatch
+
+# Install pgvector extension
+psql -U postgres -d narrativewatch -c "CREATE EXTENSION vector;"
+
+# Initialize schema
 python scripts/init_db.py
 ```
 
@@ -64,55 +74,26 @@ python src/server.py
 
 Server runs on http://localhost:5000
 
----
-
-## Docker Deployment
-
-### Single Container (Development)
+### 7. Verify Installation
 
 ```bash
-# Build image
-docker build -t narrativewatch-api:latest .
-
-# Run container
-docker run -d \
-  --name narrativewatch-api \
-  -p 5000:5000 \
-  -e VERTEX_AI_PROJECT_ID=your-project-id \
-  -e INSTAGRAM_ACCESS_TOKEN=your-token \
-  -e TAVILY_API_KEY=your-key \
-  -e DATABASE_URL=postgresql://user:pass@db:5432/narrativewatch \
-  narrativewatch-api:latest
-```
-
-### Docker Compose (Recommended)
-
-```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f api
-
-# Stop services
-docker-compose down
-```
-
-Services:
-- **postgres**: PostgreSQL database (port 5432)
-- **api**: Flask server (port 5000)
-
-### Health Checks
-
-```bash
-# API health
+# Health check
 curl http://localhost:5000/health
 
-# Database health
-docker-compose ps
+# Get stats
+curl http://localhost:5000/stats
 
-# Check logs
-docker-compose logs api
+# Example analysis
+curl -X POST http://localhost:5000/analyze/post \
+  -H "Content-Type: application/json" \
+  -d '{
+    "post_id": "test_123",
+    "page_username": "testuser",
+    "caption": "Test content",
+    "hashtags": ["#test"],
+    "likes": 100,
+    "comments": 10
+  }'
 ```
 
 ---
@@ -210,65 +191,141 @@ Response: {"status": "success", "data": {...}}
 ### AWS EC2
 
 ```bash
-# 1. Launch EC2 (Ubuntu 22.04, t3.medium)
-# 2. Install Docker
-sudo apt update && sudo apt install -y docker.io docker-compose
+# 1. Launch EC2 instance (Ubuntu 22.04, t2.medium+)
+ssh -i key.pem ubuntu@your-instance-ip
 
-# 3. Clone repo
+# 2. Install dependencies
+sudo apt update
+sudo apt install -y python3.10 python3-pip postgresql postgresql-contrib
+sudo apt install -y postgresql-14-pgvector
+
+# 3. Clone repository
 git clone https://github.com/rishikumargl/NarrativeWatch-AI.git
 cd NarrativeWatch-AI
 
-# 4. Create .env
-nano .env
+# 4. Setup Python virtual environment
+python3.10 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-# 5. Start services
-sudo docker-compose up -d
+# 5. Configure PostgreSQL
+sudo su - postgres
+createdb narrativewatch
+psql -d narrativewatch -c "CREATE EXTENSION vector;"
+exit
+
+# 6. Create .env file
+cp .env.example .env
+nano .env  # Add your credentials
+
+# 7. Initialize database
+python scripts/init_db.py
+
+# 8. Run with systemd (production)
+# Create /etc/systemd/system/narrativewatch.service:
+sudo nano /etc/systemd/system/narrativewatch.service
 ```
 
-### Google Cloud Run
+### Systemd Service Setup
 
-```bash
-gcloud builds submit --tag gcr.io/PROJECT_ID/narrativewatch-api
-gcloud run deploy narrativewatch-api \
-  --image gcr.io/PROJECT_ID/narrativewatch-api \
-  --platform managed \
-  --region us-central1 \
-  --memory 2Gi
+Create `/etc/systemd/system/narrativewatch.service`:
+
+```ini
+[Unit]
+Description=NarrativeWatch AI Backend
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=ubuntu
+WorkingDirectory=/home/ubuntu/NarrativeWatch-AI
+Environment="PATH=/home/ubuntu/NarrativeWatch-AI/venv/bin"
+EnvironmentFile=/home/ubuntu/NarrativeWatch-AI/.env
+ExecStart=/home/ubuntu/NarrativeWatch-AI/venv/bin/python src/server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-### Kubernetes
+Then:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable narrativewatch
+sudo systemctl start narrativewatch
+sudo systemctl status narrativewatch
+```
+
+### Google Cloud Compute Engine
 
 ```bash
-# Create secrets
-kubectl create secret generic narrativewatch-secrets \
-  --from-literal=db-url=postgresql://... \
-  --from-literal=gcp-project=...
+# 1. Create VM instance
+gcloud compute instances create narrativewatch-api \
+  --image-family=ubuntu-2204-lts \
+  --image-project=ubuntu-os-cloud \
+  --machine-type=e2-medium \
+  --zone=us-central1-a
 
-# Deploy
-kubectl apply -f deployment.yaml
+# 2. SSH into instance
+gcloud compute ssh narrativewatch-api --zone=us-central1-a
 
-# Scale
-kubectl scale deployment narrativewatch-api --replicas=3
+# 3. Install dependencies (same as AWS EC2 above)
+```
+
+### Heroku Deployment
+
+```bash
+# 1. Create Heroku app
+heroku create narrativewatch-api
+
+# 2. Add PostgreSQL addon
+heroku addons:create heroku-postgresql:standard-0
+
+# 3. Set environment variables
+heroku config:set VERTEX_AI_PROJECT_ID=your-project-id
+heroku config:set INSTAGRAM_ACCESS_TOKEN=your-token
+heroku config:set TAVILY_API_KEY=your-key
+
+# 4. Create Procfile
+echo "web: python src/server.py" > Procfile
+
+# 5. Deploy
+git push heroku main
 ```
 
 ---
 
 ## Monitoring & Logging
 
-### Docker Logs
+### Application Logs
+
 ```bash
-docker-compose logs -f api
-docker logs narrativewatch-api
+# With systemd
+sudo journalctl -u narrativewatch -f
+
+# Direct output (development)
+tail -f ~/.narrativewatch/app.log
 ```
 
-### Database Maintenance
-```bash
-# Check size
-docker exec narrativewatch-db psql -U narrativewatch -c \
-  "SELECT pg_size_pretty(pg_database_size('narrativewatch'));"
+### Database Monitoring
 
-# Vacuum
-docker exec narrativewatch-db psql -U narrativewatch -c "VACUUM ANALYZE;"
+```bash
+# Connect to PostgreSQL
+psql -U postgres -d narrativewatch
+
+# Check database size
+SELECT pg_size_pretty(pg_database_size('narrativewatch'));
+
+# Check connections
+SELECT count(*) FROM pg_stat_activity;
+
+# Check table sizes
+SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) 
+FROM pg_tables ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+
+# Vacuum and analyze
+VACUUM ANALYZE;
 ```
 
 ---
@@ -276,14 +333,26 @@ docker exec narrativewatch-db psql -U narrativewatch -c "VACUUM ANALYZE;"
 ## Backup & Recovery
 
 ### Database Backup
+
 ```bash
-docker exec narrativewatch-db pg_dump \
-  -U narrativewatch narrativewatch > backup_$(date +%Y%m%d).sql
+# Daily backup
+pg_dump -U postgres narrativewatch > backup_$(date +%Y%m%d).sql
+
+# Compressed backup
+pg_dump -U postgres narrativewatch | gzip > backup_$(date +%Y%m%d).sql.gz
+
+# Automated backup (cron)
+# Add to crontab: 0 2 * * * pg_dump -U postgres narrativewatch | gzip > /backups/db_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ### Database Restore
+
 ```bash
-docker exec -i narrativewatch-db psql -U narrativewatch narrativewatch < backup.sql
+# From backup
+psql -U postgres narrativewatch < backup_20260612.sql
+
+# From compressed backup
+gunzip -c backup_20260612.sql.gz | psql -U postgres narrativewatch
 ```
 
 ---
@@ -326,47 +395,107 @@ gunicorn --workers 5 --bind 0.0.0.0:5000 src.server:app
 
 ## Troubleshooting
 
-### Connection Refused
+### API Not Starting
 ```bash
-docker ps | grep narrativewatch
-docker-compose restart api
-docker-compose logs api
+# Check systemd logs
+sudo journalctl -u narrativewatch -n 50
+
+# Check if port is in use
+sudo netstat -tulpn | grep 5000
+
+# Check Python errors
+python src/server.py  # Run directly to see errors
 ```
 
-### Database Error
+### Database Connection Error
 ```bash
-docker-compose ps postgres
-docker exec narrativewatch-db psql -U narrativewatch -d narrativewatch -c "SELECT 1;"
+# Verify PostgreSQL is running
+sudo systemctl status postgresql
+
+# Test connection
+psql -U postgres -d narrativewatch -c "SELECT 1;"
+
+# Check .env DATABASE_URL
+grep DATABASE_URL .env
+
+# Verify pgvector extension
+psql -U postgres -d narrativewatch -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
 ```
 
-### Health Check Failing
+### API Health Check Failing
 ```bash
+# Test endpoint
 curl http://localhost:5000/health
-docker logs narrativewatch-api
+
+# Check if service is running
+sudo systemctl status narrativewatch
+
+# View recent logs
+sudo journalctl -u narrativewatch -n 20 -e
 ```
 
-### High Memory
+### Environment Variables Not Loaded
 ```bash
-docker stats narrativewatch-api
-docker-compose up -d --scale api=1
+# Check .env file
+cat .env
+
+# Verify variables are set in systemd
+sudo systemctl cat narrativewatch
+
+# Manually set in session
+source .env
+python src/server.py
 ```
 
 ---
 
-## Rollback
+## Rollback to Previous Version
 
 ```bash
-# Tag previous version
-docker tag narrativewatch-api:latest narrativewatch-api:v1.0.0
+# 1. Stop current version
+sudo systemctl stop narrativewatch
 
-# Deploy previous
-docker pull narrativewatch-api:v1.0.0
-docker-compose down
-export DOCKER_IMAGE=narrativewatch-api:v1.0.0
-docker-compose up -d
+# 2. Checkout previous commit
+git log --oneline  # Find commit hash
+git checkout <commit-hash>
 
-# Verify
+# 3. Restart
+sudo systemctl start narrativewatch
+
+# 4. Verify
 curl http://localhost:5000/health
+```
+
+---
+
+## Performance Tuning
+
+### Application Configuration
+
+```python
+# src/server.py - Adjust for your server:
+
+# Worker configuration
+workers = (2 * cpu_count()) + 1  # For multi-process
+
+# Connection pool (in src/database/postgres_client.py)
+pool_size = 20        # Increase for more concurrency
+max_overflow = 40     # Overflow connections
+pool_pre_ping = True  # Health checks
+```
+
+### PostgreSQL Tuning
+
+```sql
+-- For 2GB RAM server, run as postgres:
+ALTER SYSTEM SET shared_buffers = '256MB';
+ALTER SYSTEM SET effective_cache_size = '1GB';
+ALTER SYSTEM SET work_mem = '4MB';
+ALTER SYSTEM SET checkpoint_completion_target = 0.9;
+ALTER SYSTEM SET wal_buffers = '16MB';
+
+-- Apply changes
+SELECT pg_reload_conf();
 ```
 
 ---
@@ -374,12 +503,12 @@ curl http://localhost:5000/health
 ## Next Steps
 
 1. Set up CI/CD (GitHub Actions)
-2. Add monitoring (Prometheus, Grafana)
-3. Configure alerting (PagerDuty)
+2. Add monitoring (ELK, Datadog, New Relic)
+3. Configure alerting (PagerDuty, Opsgenie)
 4. Add authentication (JWT)
-5. Implement rate limiting (Redis)
-6. Setup logging (ELK Stack)
-7. Add tracing (Jaeger)
+5. Implement rate limiting (custom middleware)
+6. Setup centralized logging
+7. Add APM tracing
 
 ---
 

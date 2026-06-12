@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector for vector database
+  postgres:
+    image: pgvector/pgvector:latest
+    container_name: narrativewatch-postgres
+    environment:
+      POSTGRES_DB: narrativewatch
+      POSTGRES_USER: narrativewatch_user
+      POSTGRES_PASSWORD: narrativewatch_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U narrativewatch_user -d narrativewatch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: narrativewatch-api
+    environment:
+      DATABASE_URL: postgresql://narrativewatch_user:narrativewatch_password@postgres:5432/narrativewatch
+      PYTHONUNBUFFERED: 1
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-your-api-key-here}
+      INSTAGRAM_API_TOKEN: ${INSTAGRAM_API_TOKEN:-your-token-here}
+      VERTEX_AI_PROJECT: ${VERTEX_AI_PROJECT:-your-project-id}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src  # For hot reload in development
+      - ./frontend/dist:/app/frontend/dist
+    command: uvicorn src.app:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - narrativewatch-network
+
+volumes:
+  postgres_data:
+
+networks:
+  narrativewatch-network:
+    driver: bridge

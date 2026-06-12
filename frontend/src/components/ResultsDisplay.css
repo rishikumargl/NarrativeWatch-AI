@@ -4,12 +4,13 @@
 }
 
 .results-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f7f8fc 100%);
+  background: linear-gradient(135deg, #1e3a5f 0%, #1a2847 100%);
   border-radius: 1.5rem;
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(91, 143, 199, 0.15);
+  box-shadow: var(--glow), var(--shadow-lg);
+  border: 1px solid var(--border);
   animation: slideUp 0.6s ease-out;
+  backdrop-filter: blur(10px);
 }
 
 .results-header {
@@ -36,27 +37,27 @@
   align-items: center;
   padding: 2rem;
   border-bottom: 2px solid var(--border);
-  background: linear-gradient(135deg, rgba(91, 143, 199, 0.04) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%);
 }
 
 .trust-score-section.risk-low {
-  background: linear-gradient(135deg, rgba(124, 179, 66, 0.08) 0%, transparent 100%);
-  border-bottom-color: rgba(124, 179, 66, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, transparent 100%);
+  border-bottom-color: rgba(16, 185, 129, 0.4);
 }
 
 .trust-score-section.risk-medium {
-  background: linear-gradient(135deg, rgba(218, 165, 32, 0.08) 0%, transparent 100%);
-  border-bottom-color: rgba(218, 165, 32, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, transparent 100%);
+  border-bottom-color: rgba(245, 158, 11, 0.4);
 }
 
 .trust-score-section.risk-high {
-  background: linear-gradient(135deg, rgba(217, 118, 118, 0.08) 0%, transparent 100%);
-  border-bottom-color: rgba(217, 118, 118, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, transparent 100%);
+  border-bottom-color: rgba(239, 68, 68, 0.4);
 }
 
 .trust-score-section.risk-critical {
-  background: linear-gradient(135deg, rgba(199, 99, 99, 0.08) 0%, transparent 100%);
-  border-bottom-color: rgba(199, 99, 99, 0.3);
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, transparent 100%);
+  border-bottom-color: rgba(220, 38, 38, 0.4);
 }
 
 .trust-score-circle {
@@ -67,10 +68,10 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(91, 143, 199, 0.08) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, transparent 100%);
   border: 3px solid;
   margin: 0 auto;
-  box-shadow: 0 0 15px rgba(91, 143, 199, 0.15), inset 0 0 15px rgba(91, 143, 199, 0.03);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.08);
   animation: glow 3s ease-in-out infinite;
 }
 
@@ -130,30 +131,31 @@
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1.25rem;
-  background: linear-gradient(135deg, rgba(91, 143, 199, 0.03) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%);
   transition: all 0.3s ease;
 }
 
 .finding-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(91, 143, 199, 0.15);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, transparent 100%);
 }
 
 .finding-card.finding-low {
-  border-color: rgba(124, 179, 66, 0.25);
-  background: linear-gradient(135deg, rgba(124, 179, 66, 0.06) 0%, transparent 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
 }
 
 .finding-card.finding-medium {
-  border-color: rgba(218, 165, 32, 0.25);
-  background: linear-gradient(135deg, rgba(218, 165, 32, 0.06) 0%, transparent 100%);
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%);
 }
 
 .finding-card.finding-high,
 .finding-card.finding-critical {
-  border-color: rgba(217, 118, 118, 0.25);
-  background: linear-gradient(135deg, rgba(217, 118, 118, 0.06) 0%, transparent 100%);
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
 }
 
 .finding-header {
@@ -245,8 +247,8 @@
 .recommendations-section {
   padding: 2rem;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(135deg, rgba(91, 143, 199, 0.08) 0%, transparent 100%);
-  border-left: 4px solid var(--primary);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, transparent 100%);
+  border-left: 4px solid var(--accent);
 }
 
 .recommendations-title {
@@ -278,7 +280,8 @@
 /* Metadata Section */
 .metadata-section {
   padding: 1.5rem 2rem;
-  background-color: #f9fafb;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, transparent 100%);
+  border-top: 1px solid var(--border);
 }
 
 .metadata-section h4 {

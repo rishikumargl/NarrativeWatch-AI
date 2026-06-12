@@ -5,24 +5,25 @@
 }
 
 :root {
-  --primary: #5b8fc7;
-  --primary-dark: #4a7ba7;
-  --primary-light: #7da3d5;
-  --success: #7cb342;
-  --warning: #daa520;
-  --danger: #d97676;
-  --critical: #c76363;
-  --bg: #f8f9fa;
-  --bg-secondary: #f0f2f5;
-  --surface: #ffffff;
-  --surface-light: #f7f8fc;
-  --text-primary: #2c3e50;
-  --text-secondary: #7f8c8d;
-  --border: #e8eaed;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.12);
-  --glow: 0 0 15px rgba(91, 143, 199, 0.15);
+  --primary: #3b82f6;
+  --primary-dark: #1e40af;
+  --primary-light: #60a5fa;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --critical: #dc2626;
+  --bg: #0f172a;
+  --bg-secondary: #1a2847;
+  --surface: #1e3a5f;
+  --surface-light: #2a4a7c;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --border: #3d5a80;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.6);
+  --glow: 0 0 20px rgba(59, 130, 246, 0.3);
+  --accent: #06b6d4;
 }
 
 html, body {
@@ -53,12 +54,12 @@ body {
 
 /* Header */
 .header {
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
-  border-bottom: 2px solid rgba(91, 143, 199, 0.2);
+  background: linear-gradient(135deg, #0f172a 0%, #1a2847 100%);
+  border-bottom: 2px solid var(--primary);
   color: var(--text-primary);
   padding: 3rem 1rem;
   text-align: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--glow), var(--shadow-lg);
   position: relative;
   overflow: hidden;
 }
@@ -70,7 +71,7 @@ body {
   right: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(91, 143, 199, 0.05) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
   animation: float 6s ease-in-out infinite;
 }
 
@@ -85,15 +86,18 @@ body {
   font-size: 3rem;
   font-weight: 800;
   margin-bottom: 0.5rem;
-  color: var(--primary);
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   animation: fadeIn 0.8s ease-out;
 }
 
 .subtitle {
   font-size: 1.2rem;
-  opacity: 0.85;
+  opacity: 0.9;
   font-weight: 400;
-  color: var(--text-secondary);
+  color: var(--accent);
   animation: fadeIn 1s ease-out 0.2s backwards;
 }
 

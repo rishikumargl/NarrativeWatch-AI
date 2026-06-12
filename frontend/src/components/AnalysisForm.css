@@ -4,12 +4,13 @@
 }
 
 .form-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f7f8fc 100%);
+  background: linear-gradient(135deg, #1e3a5f 0%, #1a2847 100%);
   border-radius: 1rem;
   padding: 2rem;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(91, 143, 199, 0.15);
+  box-shadow: var(--glow), var(--shadow-lg);
+  border: 1px solid var(--border);
   transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
 .form-card h2 {
@@ -45,7 +46,7 @@
   font-size: 1rem;
   font-family: inherit;
   transition: all 0.3s ease;
-  background-color: #fafbfc;
+  background-color: rgba(10, 25, 47, 0.5);
   color: var(--text-primary);
 }
 
@@ -57,8 +58,8 @@
 .form-select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(91, 143, 199, 0.1);
-  background-color: #ffffff;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: rgba(30, 58, 95, 0.8);
 }
 
 .form-input:disabled,
@@ -109,7 +110,7 @@
 .submit-button {
   width: 100%;
   padding: 0.9rem;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
   color: white;
   border: none;
   border-radius: 0.75rem;
@@ -117,19 +118,19 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(91, 143, 199, 0.25);
+  box-shadow: var(--glow), 0 4px 15px rgba(59, 130, 246, 0.4);
   letter-spacing: 0.5px;
 }
 
 .submit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-  box-shadow: 0 4px 12px rgba(91, 143, 199, 0.35);
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  box-shadow: var(--glow), 0 6px 20px rgba(59, 130, 246, 0.6);
   transform: translateY(-2px);
 }
 
 .submit-button:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(91, 143, 199, 0.25);
+  box-shadow: var(--glow), 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .submit-button:disabled {

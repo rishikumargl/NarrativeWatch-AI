@@ -41,7 +41,7 @@ class ResearchAgent:
         """Initialize research agent."""
         self.tavily = TavilyAPI()
         self.llm = LLMClient()
-        logger.info("✓ Research agent initialized")
+        logger.info("[OK] Research agent initialized")
 
     def research_narrative(
         self,
@@ -105,7 +105,7 @@ class ResearchAgent:
                 supporting_evidence=support,
             )
 
-            logger.info(f"✓ Research report generated")
+            logger.info(f"[OK] Research report generated")
             return report
 
         except Exception as e:

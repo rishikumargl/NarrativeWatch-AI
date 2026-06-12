@@ -41,7 +41,7 @@ class RAGAgent:
         self.pipeline = get_rag_pipeline()
         self.research = ResearchAgent()
         self.llm = LLMClient()
-        logger.info("✓ RAG agent initialized")
+        logger.info("[OK] RAG agent initialized")
 
     def analyze_post(
         self,
@@ -103,7 +103,7 @@ class RAGAgent:
                 confidence_score=confidence,
             )
 
-            logger.info(f"✓ RAG analysis complete for post {post_id}")
+            logger.info(f"[OK] RAG analysis complete for post {post_id}")
             return report
 
         except Exception as e:
@@ -170,7 +170,7 @@ class RAGAgent:
                 confidence_score=confidence,
             )
 
-            logger.info(f"✓ RAG analysis complete for page {username}")
+            logger.info(f"[OK] RAG analysis complete for page {username}")
             return report
 
         except Exception as e:
@@ -251,7 +251,7 @@ class RAGAgent:
                 confidence_score=0.75,
             )
 
-            logger.info(f"✓ Coordination analysis complete")
+            logger.info(f"[OK] Coordination analysis complete")
             return report
 
         except Exception as e:

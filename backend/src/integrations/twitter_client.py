@@ -40,7 +40,7 @@ class TwitterClient:
         """Initialize Twitter API v2 client."""
         try:
             self.client = tweepy.Client(bearer_token=self.bearer_token)
-            logger.info("✓ Twitter API v2 client initialized")
+            logger.info("[OK] Twitter API v2 client initialized")
         except Exception as e:
             logger.error(f"Failed to initialize Twitter API v2: {e}")
 
@@ -50,7 +50,7 @@ class TwitterClient:
             auth = tweepy.OAuthHandler(self.api_key, self.api_secret)
             auth.set_access_token(self.access_token, self.access_token_secret)
             self.api = tweepy.API(auth)
-            logger.info("✓ Twitter API v1.1 client initialized")
+            logger.info("[OK] Twitter API v1.1 client initialized")
         except Exception as e:
             logger.error(f"Failed to initialize Twitter API v1.1: {e}")
 

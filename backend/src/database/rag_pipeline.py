@@ -22,7 +22,7 @@ class RAGPipeline:
         self.db_client = get_client()
         self.embedding_client = get_embedding_client()
         self.instagram_api = InstagramAPI()
-        logger.info("✓ RAG pipeline initialized")
+        logger.info("[OK] RAG pipeline initialized")
 
     # ==================== INGESTION ====================
 
@@ -79,7 +79,7 @@ class RAGPipeline:
             try:
                 session.add(post)
                 session.commit()
-                logger.info(f"✓ Ingested post: {post_id}")
+                logger.info(f"[OK] Ingested post: {post_id}")
                 return post_id
             finally:
                 session.close()
@@ -136,7 +136,7 @@ class RAGPipeline:
             try:
                 session.add(page)
                 session.commit()
-                logger.info(f"✓ Ingested page: {username}")
+                logger.info(f"[OK] Ingested page: {username}")
                 return page_id
             finally:
                 session.close()
@@ -187,7 +187,7 @@ class RAGPipeline:
             try:
                 session.add(pattern)
                 session.commit()
-                logger.info(f"✓ Ingested bias pattern: {pattern_id}")
+                logger.info(f"[OK] Ingested bias pattern: {pattern_id}")
                 return pattern_id
             finally:
                 session.close()

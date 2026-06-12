@@ -124,7 +124,7 @@ class OrchestratorAgent:
         self.bot_agent = None   # Team member: Data engineer
         self.misinformation_agent = None  # Team member: Data engineer
 
-        logger.info("✓ Orchestrator initialized")
+        logger.info("[OK] Orchestrator initialized")
 
     def analyze_post(
         self,
@@ -158,7 +158,7 @@ class OrchestratorAgent:
             analysis_start = datetime.utcnow().isoformat()
 
             # 1. RAG Analysis (vector similarity + LLM)
-            logger.info("→ Running RAG analysis...")
+            logger.info("[>] Running RAG analysis...")
             rag_result = self.rag_agent.analyze_post(
                 post_id=post_id,
                 caption=caption,
@@ -167,7 +167,7 @@ class OrchestratorAgent:
             )
 
             # 2. Research Analysis (web search)
-            logger.info("→ Running research analysis...")
+            logger.info("[>] Running research analysis...")
             research_result = None
             if hashtags:
                 research_result = self.research_agent.research_narrative(
@@ -179,7 +179,7 @@ class OrchestratorAgent:
             # 3. Bias Detection (to be implemented by ML/NLP team)
             bias_result = None
             if self.bias_agent and use_all_agents:
-                logger.info("→ Running bias detection...")
+                logger.info("[>] Running bias detection...")
                 try:
                     bias_result = self.bias_agent.detect_bias(caption, hashtags)
                 except Exception as e:
@@ -188,7 +188,7 @@ class OrchestratorAgent:
             # 4. Bot Detection (to be implemented by data eng team)
             bot_result = None
             if self.bot_agent and use_all_agents:
-                logger.info("→ Running bot detection...")
+                logger.info("[>] Running bot detection...")
                 try:
                     bot_result = self.bot_agent.detect_bot(
                         page=page_username,
@@ -200,7 +200,7 @@ class OrchestratorAgent:
             # 5. Misinformation Detection (to be implemented by data eng team)
             misinformation_result = None
             if self.misinformation_agent and use_all_agents:
-                logger.info("→ Running misinformation detection...")
+                logger.info("[>] Running misinformation detection...")
                 try:
                     misinformation_result = self.misinformation_agent.detect_misinformation(
                         caption,
@@ -210,7 +210,7 @@ class OrchestratorAgent:
                     logger.warning(f"Misinformation detection unavailable: {e}")
 
             # 6. Aggregate results
-            logger.info("→ Aggregating analysis results...")
+            logger.info("[>] Aggregating analysis results...")
             comprehensive = self._aggregate_analysis(
                 post_id=post_id,
                 content_type=ContentType.POST,
@@ -222,7 +222,7 @@ class OrchestratorAgent:
                 analysis_timestamp=analysis_start,
             )
 
-            logger.info(f"✓ Analysis complete. Risk level: {comprehensive.risk_level.value}")
+            logger.info(f"[OK] Analysis complete. Risk level: {comprehensive.risk_level.value}")
             return comprehensive
 
         except Exception as e:
@@ -254,7 +254,7 @@ class OrchestratorAgent:
             analysis_start = datetime.utcnow().isoformat()
 
             # 1. RAG Analysis
-            logger.info("→ Running RAG analysis...")
+            logger.info("[>] Running RAG analysis...")
             rag_result = self.rag_agent.analyze_page(
                 page_id=page_id,
                 username=username,
@@ -263,7 +263,7 @@ class OrchestratorAgent:
             )
 
             # 2. Research Analysis
-            logger.info("→ Running research analysis...")
+            logger.info("[>] Running research analysis...")
             research_result = self.research_agent.get_context_about_page(
                 username=username,
                 biography=biography,
@@ -281,7 +281,7 @@ class OrchestratorAgent:
                 analysis_timestamp=analysis_start,
             )
 
-            logger.info(f"✓ Page analysis complete. Risk level: {comprehensive.risk_level.value}")
+            logger.info(f"[OK] Page analysis complete. Risk level: {comprehensive.risk_level.value}")
             return comprehensive
 
         except Exception as e:
@@ -291,17 +291,17 @@ class OrchestratorAgent:
     def register_bias_agent(self, agent):
         """Register bias detection agent."""
         self.bias_agent = agent
-        logger.info("✓ Bias detection agent registered")
+        logger.info("[OK] Bias detection agent registered")
 
     def register_bot_agent(self, agent):
         """Register bot detection agent."""
         self.bot_agent = agent
-        logger.info("✓ Bot detection agent registered")
+        logger.info("[OK] Bot detection agent registered")
 
     def register_misinformation_agent(self, agent):
         """Register misinformation detection agent."""
         self.misinformation_agent = agent
-        logger.info("✓ Misinformation detection agent registered")
+        logger.info("[OK] Misinformation detection agent registered")
 
     # ==================== HELPERS ====================
 

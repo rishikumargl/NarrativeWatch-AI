@@ -97,7 +97,7 @@ class AnalysisAPI:
     def __init__(self):
         """Initialize API with orchestrator."""
         self.orchestrator = get_orchestrator()
-        logger.info("✓ Analysis API initialized")
+        logger.info("[OK] Analysis API initialized")
 
     def analyze_post(self, request: AnalyzePostRequest) -> AnalysisResponse:
         """Analyze Instagram post.
@@ -123,7 +123,7 @@ class AnalysisAPI:
 
             # Convert to response format
             response = self._convert_analysis_to_response(analysis)
-            logger.info(f"✓ Post analysis complete: {response.risk_level}")
+            logger.info(f"[OK] Post analysis complete: {response.risk_level}")
             return response
 
         except Exception as e:
@@ -152,7 +152,7 @@ class AnalysisAPI:
 
             # Convert to response format
             response = self._convert_analysis_to_response(analysis)
-            logger.info(f"✓ Page analysis complete: {response.risk_level}")
+            logger.info(f"[OK] Page analysis complete: {response.risk_level}")
             return response
 
         except Exception as e:

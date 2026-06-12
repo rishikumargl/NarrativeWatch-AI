@@ -23,7 +23,7 @@ class NewsAPIClient:
                 "NEWSAPI_KEY not found. Get free key at https://newsapi.org/"
             )
         else:
-            logger.info("✓ NewsAPI client initialized")
+            logger.info("[OK] NewsAPI client initialized")
 
     def search_articles(
         self,

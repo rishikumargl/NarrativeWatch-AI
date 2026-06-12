@@ -24,7 +24,7 @@ class TavilyAPI:
 
         self.base_url = "https://api.tavily.com/search"
         self.session = requests.Session()
-        logger.info("✓ Tavily API client initialized")
+        logger.info("[OK] Tavily API client initialized")
 
     def search(
         self,
@@ -59,7 +59,7 @@ class TavilyAPI:
             response.raise_for_status()
 
             data = response.json()
-            logger.info(f"✓ Found {len(data.get('results', []))} results")
+            logger.info(f"[OK] Found {len(data.get('results', []))} results")
 
             return {
                 "query": query,
@@ -159,7 +159,8 @@ class TavilyAPI:
             }
             response = self.session.post(self.base_url, json=payload, timeout=10)
             is_healthy = response.status_code == 200
-            logger.info(f"{'✓' if is_healthy else '✗'} Tavily API health: {response.status_code}")
+            status = "[OK]" if is_healthy else "[FAIL]"
+            logger.info(f"{status} Tavily API health: {response.status_code}")
             return is_healthy
         except Exception as e:
             logger.error(f"Tavily API health check failed: {e}")

@@ -76,9 +76,9 @@ class PostgresClient:
                     # Create database
                     conn.execute(text(f"CREATE DATABASE {db_name}"))
                     conn.commit()
-                    logger.info(f"✓ Created database: {db_name}")
+                    logger.info(f"[OK] Created database: {db_name}")
                 else:
-                    logger.info(f"✓ Database already exists: {db_name}")
+                    logger.info(f"[OK] Database already exists: {db_name}")
 
             default_engine.dispose()
 
@@ -91,9 +91,9 @@ class PostgresClient:
         try:
             with self.engine.connect() as connection:
                 result = connection.execute(text("SELECT 1"))
-                logger.info("✓ PostgreSQL connection successful")
+                logger.info("[OK] PostgreSQL connection successful")
         except Exception as e:
-            logger.error(f"✗ PostgreSQL connection failed: {e}")
+            logger.error(f"[FAIL] PostgreSQL connection failed: {e}")
             raise
 
     def get_session(self) -> Session:
@@ -105,14 +105,14 @@ class PostgresClient:
         from .models import Base
         logger.info("Creating database tables...")
         Base.metadata.create_all(bind=self.engine)
-        logger.info("✓ Database tables created")
+        logger.info("[OK] Database tables created")
 
     def drop_all_tables(self):
         """Drop all database tables (for testing)."""
         from .models import Base
         logger.warning("Dropping all database tables...")
         Base.metadata.drop_all(bind=self.engine)
-        logger.info("✓ Database tables dropped")
+        logger.info("[OK] Database tables dropped")
 
     def check_pgvector_extension(self) -> bool:
         """Check if pgvector extension is installed."""
@@ -123,10 +123,10 @@ class PostgresClient:
                 )
                 has_extension = result.scalar()
                 if has_extension:
-                    logger.info("✓ pgvector extension found")
+                    logger.info("[OK] pgvector extension found")
                     return True
                 else:
-                    logger.warning("✗ pgvector extension not found")
+                    logger.warning("[FAIL] pgvector extension not found")
                     return False
         except Exception as e:
             logger.error(f"Error checking pgvector: {e}")
@@ -138,7 +138,7 @@ class PostgresClient:
             with self.engine.connect() as connection:
                 connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
                 connection.commit()
-                logger.info("✓ pgvector extension installed")
+                logger.info("[OK] pgvector extension installed")
         except Exception as e:
             logger.error(f"Error installing pgvector: {e}")
             raise

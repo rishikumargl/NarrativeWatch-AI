@@ -41,14 +41,14 @@ class LLMClient:
         # Initialize Vertex AI
         try:
             vertexai.init(project=self.project_id, location=self.location)
-            logger.info(f"✓ Vertex AI initialized: {self.project_id}/{self.location}")
+            logger.info(f"[OK] Vertex AI initialized: {self.project_id}/{self.location}")
         except Exception as e:
             logger.error(f"Failed to initialize Vertex AI: {e}")
             raise
 
         # Initialize model
         self.model = GenerativeModel(self.model_name)
-        logger.info(f"✓ LLM client initialized: {self.model_name}")
+        logger.info(f"[OK] LLM client initialized: {self.model_name}")
 
     def generate(
         self,
@@ -87,7 +87,7 @@ class LLMClient:
             )
 
             text = response.text
-            logger.info(f"✓ Generated {len(text)} characters")
+            logger.info(f"[OK] Generated {len(text)} characters")
             return text
 
         except Exception as e:
@@ -131,7 +131,7 @@ class LLMClient:
                 },
             )
 
-            logger.info("✓ Streaming generation started")
+            logger.info("[OK] Streaming generation started")
             for chunk in response:
                 if chunk.text:
                     yield chunk.text
@@ -249,7 +249,7 @@ Text: {text}"""
         try:
             response = self.generate("Say 'OK'")
             is_healthy = response and len(response) > 0
-            logger.info(f"{'✓' if is_healthy else '✗'} LLM health check: {is_healthy}")
+            logger.info(f"{'[OK]' if is_healthy else '[FAIL]'} LLM health check: {is_healthy}")
             return is_healthy
         except Exception as e:
             logger.error(f"LLM health check failed: {e}")

@@ -26,7 +26,7 @@ class InstagramAPI:
         self.base_url = "https://graph.instagram.com/v18.0"
         self.session = requests.Session()
         self.session.headers.update({"Authorization": f"Bearer {self.access_token}"})
-        logger.info("✓ Instagram API client initialized")
+        logger.info("[OK] Instagram API client initialized")
 
     def _make_request(
         self, endpoint: str, method: str = "GET", params: Optional[Dict] = None
@@ -189,7 +189,7 @@ class InstagramAPI:
         try:
             response = self.session.get(f"{self.base_url}/me", timeout=10)
             is_healthy = response.status_code == 200
-            logger.info(f"{'✓' if is_healthy else '✗'} Instagram API health: {response.status_code}")
+            logger.info(f"{'[OK]' if is_healthy else '[FAIL]'} Instagram API health: {response.status_code}")
             return is_healthy
         except Exception as e:
             logger.error(f"Instagram API health check failed: {e}")

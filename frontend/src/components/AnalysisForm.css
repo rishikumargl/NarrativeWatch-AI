@@ -4,10 +4,12 @@
 }
 
 .form-card {
-  background-color: var(--surface);
-  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--surface-light) 0%, var(--surface) 100%);
+  border-radius: 1rem;
   padding: 2rem;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glow), var(--shadow-lg);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  transition: all 0.3s ease;
 }
 
 .form-card h2 {
@@ -38,18 +40,25 @@
 .form-select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
   font-size: 1rem;
   font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
+  background-color: rgba(15, 23, 42, 0.5);
+  color: var(--text-primary);
+}
+
+.form-input::placeholder {
+  color: var(--text-secondary);
 }
 
 .form-input:focus,
 .form-select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), var(--glow);
+  background-color: rgba(15, 23, 42, 0.8);
 }
 
 .form-input:disabled,
@@ -99,28 +108,34 @@
 /* Submit Button */
 .submit-button {
   width: 100%;
-  padding: 0.75rem;
-  background-color: var(--primary);
+  padding: 0.9rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  letter-spacing: 0.5px;
 }
 
 .submit-button:hover:not(:disabled) {
-  background-color: var(--primary-dark);
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
+  transform: translateY(-2px);
 }
 
 .submit-button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(0);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
 }
 
 .submit-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Example Section */

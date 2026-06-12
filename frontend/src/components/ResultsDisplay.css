@@ -4,10 +4,12 @@
 }
 
 .results-card {
-  background-color: var(--surface);
-  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--surface-light) 0%, var(--surface) 100%);
+  border-radius: 1.5rem;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glow), var(--shadow-lg);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  animation: slideUp 0.6s ease-out;
 }
 
 .results-header {
@@ -34,26 +36,27 @@
   align-items: center;
   padding: 2rem;
   border-bottom: 2px solid var(--border);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
 }
 
 .trust-score-section.risk-low {
-  background-color: #f0fdf4;
-  border-bottom-color: #86efac;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
+  border-bottom-color: rgba(16, 185, 129, 0.5);
 }
 
 .trust-score-section.risk-medium {
-  background-color: #fffbeb;
-  border-bottom-color: #fcd34d;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%);
+  border-bottom-color: rgba(245, 158, 11, 0.5);
 }
 
 .trust-score-section.risk-high {
-  background-color: #fef2f2;
-  border-bottom-color: #fca5a5;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
+  border-bottom-color: rgba(239, 68, 68, 0.5);
 }
 
 .trust-score-section.risk-critical {
-  background-color: #fef2f2;
-  border-bottom-color: #fca5a5;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, transparent 100%);
+  border-bottom-color: rgba(220, 38, 38, 0.5);
 }
 
 .trust-score-circle {
@@ -64,9 +67,11 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: white;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
   border: 3px solid;
   margin: 0 auto;
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.2), inset 0 0 30px rgba(99, 102, 241, 0.05);
+  animation: glow 3s ease-in-out infinite;
 }
 
 .trust-score-section.risk-low .trust-score-circle {
@@ -145,25 +150,32 @@
 
 .finding-card {
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  background-color: var(--bg-secondary);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, transparent 100%);
+  transition: all 0.3s ease;
+}
+
+.finding-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
 }
 
 .finding-card.finding-low {
-  border-color: #dcfce7;
-  background-color: #f0fdf4;
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
 }
 
 .finding-card.finding-medium {
-  border-color: #fef3c7;
-  background-color: #fffbeb;
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
 }
 
 .finding-card.finding-high,
 .finding-card.finding-critical {
-  border-color: #fee2e2;
-  background-color: #fef2f2;
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
 }
 
 .finding-header {
@@ -255,7 +267,8 @@
 .recommendations-section {
   padding: 2rem;
   border-bottom: 1px solid var(--border);
-  background-color: #f0f9ff;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+  border-left: 4px solid var(--primary);
 }
 
 .recommendations-title {

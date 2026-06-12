@@ -1,0 +1,882 @@
+================================================================================
+                    NARRATIVEWATCH AI - MILESTONES & ISSUES
+================================================================================
+
+OVERVIEW:
+- 4 Weeks (28 days)
+- 5 Team Members
+- ~60 Issues/Tasks
+- 4 Major Milestones
+
+================================================================================
+                            MILESTONE 1: WEEK 1
+                         Infrastructure & Setup (40 hrs)
+================================================================================
+
+Milestone: Week 1 - Infrastructure & Setup
+Start: Monday (June 12, 2026)
+End: Friday (June 16, 2026)
+Owner: Rohan Urmude
+Status: Not Started
+
+Goal: All infrastructure ready. Team can develop agents independently.
+
+---
+
+ISSUES FOR MILESTONE 1:
+
+[1.1] REPOSITORY SETUP
+Priority: CRITICAL
+Owner: Rohan
+Effort: 2 hours
+Status: TODO
+
+Tasks:
+- [ ] Create Git repository structure
+- [ ] Create .gitignore
+- [ ] Create .env.example
+- [ ] Create requirements.txt
+- [ ] Push initial commit to main
+- [ ] Create develop branch
+- [ ] Create 5 feature branches
+- [ ] Add branch protection rules
+
+Acceptance:
+- [ ] All files committed
+- [ ] All branches created and pushed
+- [ ] No API keys in repo
+
+---
+
+[1.2] CONFIGURATION & LOGGING
+Priority: CRITICAL
+Owner: Rohan
+Effort: 3 hours
+Status: TODO
+
+Tasks:
+- [ ] Create src/config.py with all settings
+- [ ] Create src/logger.py with logging
+- [ ] Create logs/ directory
+- [ ] Test logging across modules
+- [ ] Document configuration options
+- [ ] Create environment validation script
+
+Acceptance:
+- [ ] All modules can import config
+- [ ] Logging works in all modules
+- [ ] Configuration readable from .env
+
+---
+
+[1.3] POSTGRESQL + PGVECTOR SETUP
+Priority: CRITICAL
+Owner: Backend Specialist
+Effort: 4 hours
+Status: TODO
+Branch: feature/backend-rag-apis
+
+Tasks:
+- [ ] Set up PostgreSQL instance (Docker or local)
+- [ ] Create database "narrativewatch"
+- [ ] Install pgvector extension
+- [ ] Create SQLAlchemy connection pool
+- [ ] Create src/database/postgres_client.py
+- [ ] Create src/database/models.py with ORM models
+- [ ] Create initialization script (scripts/init_db.py)
+- [ ] Test CRUD operations
+- [ ] Write integration tests
+
+Acceptance:
+- [ ] PostgreSQL running on localhost:5432
+- [ ] pgvector extension installed
+- [ ] Can create/read/update/delete objects
+- [ ] Tests passing
+
+---
+
+[1.4] EXTERNAL API SETUP
+Priority: CRITICAL
+Owner: Backend Specialist
+Effort: 4 hours
+Status: TODO
+Branch: feature/backend-rag-apis
+
+Tasks:
+- [ ] Get Tavily API key and test
+- [ ] Get Instagram Graph API token and test
+- [ ] Get Vertex AI credentials
+- [ ] Create src/apis/tavily_api.py wrapper
+- [ ] Create src/apis/instagram_api.py wrapper
+- [ ] Create src/apis/llm_client.py (Vertex AI)
+- [ ] Test all APIs independently
+- [ ] Document rate limits and quotas
+- [ ] Create error handling
+
+Acceptance:
+- [ ] All APIs responding correctly
+- [ ] Error handling in place
+- [ ] Rate limits documented
+- [ ] Tests passing
+
+---
+
+[1.5] VERTEX AI SETUP
+Priority: CRITICAL
+Owner: Rohan
+Effort: 3 hours
+Status: TODO
+
+Tasks:
+- [ ] Create Google Cloud project
+- [ ] Enable Vertex AI API
+- [ ] Create service account
+- [ ] Download credentials JSON
+- [ ] Configure GOOGLE_APPLICATION_CREDENTIALS
+- [ ] Test Gemini 2.5 access
+- [ ] Test text-embedding-005 access
+- [ ] Create LLM configuration
+- [ ] Create embedding configuration
+
+Acceptance:
+- [ ] Can authenticate with Vertex AI
+- [ ] Can call Gemini 2.5 API
+- [ ] Can generate embeddings
+- [ ] Credentials secure in .env
+
+---
+
+[1.6] BASE AGENT ARCHITECTURE
+Priority: CRITICAL
+Owner: Rohan
+Effort: 5 hours
+Status: TODO
+Branch: feature/orchestrator-agent
+
+Tasks:
+- [ ] Create src/agents/base_agent.py
+- [ ] Implement agent executor pattern
+- [ ] Create tool registration system
+- [ ] Implement LLM integration
+- [ ] Create state management foundation
+- [ ] Create example test agent
+- [ ] Write documentation
+- [ ] Test with sample tools
+
+Acceptance:
+- [ ] Can create simple agent
+- [ ] Can run agent with tools
+- [ ] Logging works
+- [ ] Example agent runs successfully
+
+---
+
+[1.7] EMBEDDING UTILITIES
+Priority: IMPORTANT
+Owner: Backend Specialist
+Effort: 3 hours
+Status: TODO
+Branch: feature/backend-rag-apis
+
+Tasks:
+- [ ] Create src/utils/embedding_utils.py
+- [ ] Implement Vertex AI embedding function
+- [ ] Add batch processing
+- [ ] Add caching
+- [ ] Test on sample texts
+- [ ] Benchmark performance
+- [ ] Document usage
+
+Acceptance:
+- [ ] Embeddings generated correctly
+- [ ] Batch processing works
+- [ ] Dimensions are 1536
+- [ ] Performance < 100ms per text
+
+---
+
+[1.8] TEAM ONBOARDING
+Priority: IMPORTANT
+Owner: Rohan
+Effort: 2 hours
+Status: TODO
+
+Tasks:
+- [ ] Create BRANCH_GUIDE.md
+- [ ] Share branch assignments with team
+- [ ] Set up daily standup (10 AM)
+- [ ] Create team communication channel
+- [ ] Distribute API keys securely
+- [ ] Schedule technical walkthrough
+- [ ] Verify all team members can clone & run setup
+
+Acceptance:
+- [ ] All team members have access
+- [ ] All team members understand their role
+- [ ] All team members can run setup.sh
+- [ ] All team members have feature branch
+
+---
+
+WEEK 1 SUMMARY:
+Total Issues: 8
+Total Effort: ~26 hours
+Status: All Todo
+Blockers: None
+Dependencies: None (parallel work possible)
+
+WEEK 1 SUCCESS CRITERIA:
+- [ ] Repository fully set up
+- [ ] PostgreSQL + pgvector running
+- [ ] All APIs responding
+- [ ] Vertex AI credentials working
+- [ ] Base agent framework ready
+- [ ] All team members onboarded
+- [ ] All team members can develop
+
+================================================================================
+                        MILESTONE 2: WEEK 2-3
+                      Agent Development (120 hrs)
+================================================================================
+
+Milestone: Week 2-3 - Agent Implementation
+Start: Monday (June 19, 2026)
+End: Friday (June 27, 2026)
+Owner: Team Leads
+Status: Not Started
+
+Goal: All 9 agents implemented, tested, and ready for integration.
+
+---
+
+WEEK 2 ISSUES:
+
+[2.1] RAG PIPELINE IMPLEMENTATION
+Priority: CRITICAL
+Owner: Backend Specialist
+Effort: 6 hours
+Status: TODO
+Branch: feature/backend-rag-apis
+Depends on: [1.3], [1.7]
+
+Tasks:
+- [ ] Create src/database/rag_pipeline.py
+- [ ] Implement data ingestion (Instagram posts → embeddings)
+- [ ] Implement pgvector storage
+- [ ] Implement similarity search queries
+- [ ] Implement batch ingestion
+- [ ] Load sample data (10k posts)
+- [ ] Test retrieval quality
+- [ ] Benchmark queries (target: < 500ms)
+
+Acceptance:
+- [ ] Can ingest 10k posts
+- [ ] Similarity search returns relevant results
+- [ ] Performance < 500ms per query
+- [ ] Tests passing
+
+---
+
+[2.2] RESEARCH AGENT
+Priority: CRITICAL
+Owner: Backend Specialist
+Effort: 5 hours
+Status: TODO
+Branch: feature/backend-rag-apis
+Depends on: [1.4]
+
+Tasks:
+- [ ] Create src/agents/research_agent.py
+- [ ] Implement Tavily search tool
+- [ ] Implement Instagram API tool
+- [ ] Implement result aggregation
+- [ ] Implement error handling
+- [ ] Implement rate limiting
+- [ ] Write unit tests
+- [ ] Test with sample queries
+
+Acceptance:
+- [ ] Can search Tavily
+- [ ] Can query Instagram API
+- [ ] Results aggregated correctly
+- [ ] Tests passing (80%+ coverage)
+
+---
+
+[2.3] RAG AGENT
+Priority: CRITICAL
+Owner: Backend Specialist
+Effort: 4 hours
+Status: TODO
+Branch: feature/backend-rag-apis
+Depends on: [2.1]
+
+Tasks:
+- [ ] Create src/agents/rag_agent.py
+- [ ] Implement query embedding
+- [ ] Implement pgvector similarity search
+- [ ] Implement result ranking
+- [ ] Implement context building
+- [ ] Write integration tests
+- [ ] Benchmark (target: < 1s)
+
+Acceptance:
+- [ ] Returns relevant similar posts
+- [ ] Response time < 1s
+- [ ] Tests passing
+
+---
+
+[2.4] CONTENT ANALYZER AGENT
+Priority: CRITICAL
+Owner: ML/NLP Specialist
+Effort: 6 hours
+Status: TODO
+Branch: feature/ml-nlp-agents
+
+Tasks:
+- [ ] Create src/utils/text_processor.py (tokenization, NER, etc)
+- [ ] Create src/agents/content_analyzer.py
+- [ ] Implement hashtag extraction
+- [ ] Implement narrative theme detection
+- [ ] Implement emotional language classification
+- [ ] Implement engagement metrics extraction
+- [ ] Write unit tests
+- [ ] Test on 100+ sample posts
+
+Acceptance:
+- [ ] Extracts all required features
+- [ ] Handles edge cases
+- [ ] Tests passing (80%+ coverage)
+- [ ] Performance < 2s per post
+
+---
+
+[2.5] BIAS DETECTOR AGENT
+Priority: IMPORTANT
+Owner: ML/NLP Specialist
+Effort: 6 hours
+Status: TODO
+Branch: feature/ml-nlp-agents
+
+Tasks:
+- [ ] Research bias detection models
+- [ ] Create src/agents/bias_detector.py
+- [ ] Implement political bias detection
+- [ ] Implement gender bias detection
+- [ ] Implement ideological bias detection
+- [ ] Implement scoring (0-1)
+- [ ] Write unit tests
+- [ ] Test on diverse samples
+
+Acceptance:
+- [ ] Detects multiple bias types
+- [ ] Scoring is consistent
+- [ ] Tests passing (80%+ coverage)
+- [ ] Accuracy validated on samples
+
+---
+
+[2.6] BOT DETECTOR AGENT
+Priority: IMPORTANT
+Owner: ML/NLP Specialist
+Effort: 5 hours
+Status: TODO
+Branch: feature/ml-nlp-agents
+
+Tasks:
+- [ ] Research bot detection patterns
+- [ ] Create src/agents/bot_detector.py
+- [ ] Implement engagement velocity analysis
+- [ ] Implement comment pattern analysis
+- [ ] Implement follower growth anomaly detection
+- [ ] Implement timing correlation detection
+- [ ] Write unit tests
+- [ ] Test on sample accounts
+
+Acceptance:
+- [ ] Identifies suspicious patterns
+- [ ] Scoring consistent
+- [ ] Tests passing (80%+ coverage)
+
+---
+
+WEEK 3 ISSUES:
+
+[2.7] CAMPAIGN DETECTOR AGENT
+Priority: IMPORTANT
+Owner: Senior Data Engineer
+Effort: 6 hours
+Status: TODO
+Branch: feature/data-eng-agents
+
+Tasks:
+- [ ] Create src/agents/campaign_detector.py
+- [ ] Implement graph construction (pages, hashtags)
+- [ ] Implement clustering algorithm (k-means)
+- [ ] Implement cross-page correlation
+- [ ] Implement coordination scoring
+- [ ] Implement evidence extraction
+- [ ] Write unit tests
+- [ ] Test on sample campaigns
+
+Acceptance:
+- [ ] Identifies campaign clusters
+- [ ] Scores coordination evidence
+- [ ] Tests passing (80%+ coverage)
+
+---
+
+[2.8] SYNTHESIS AGENT
+Priority: CRITICAL
+Owner: Senior Data Engineer
+Effort: 6 hours
+Status: TODO
+Branch: feature/data-eng-agents
+Depends on: [2.2-2.7]
+
+Tasks:
+- [ ] Create src/agents/synthesis_agent.py
+- [ ] Implement result aggregation
+- [ ] Implement narrative generation
+- [ ] Implement evidence ranking
+- [ ] Create src/utils/scoring.py
+- [ ] Implement trust score calculation (0-100)
+- [ ] Implement risk flag identification
+- [ ] Write unit tests
+
+Acceptance:
+- [ ] Creates coherent reports
+- [ ] Trust scores calculated correctly
+- [ ] Risk flags identified
+- [ ] Tests passing
+
+---
+
+[2.9] REVIEWER AGENT & REFLECTION LOOP
+Priority: CRITICAL
+Owner: Senior Data Engineer
+Effort: 7 hours
+Status: TODO
+Branch: feature/data-eng-agents
+Depends on: [2.8]
+
+Tasks:
+- [ ] Create src/agents/reviewer_agent.py
+- [ ] Implement completeness check
+- [ ] Implement accuracy validation
+- [ ] Implement relevance check
+- [ ] Implement clarity assessment
+- [ ] Create src/workflow/reflection_loop.py
+- [ ] Implement feedback generation
+- [ ] Implement retry logic (max 3)
+- [ ] Implement escalation handling
+- [ ] Write comprehensive tests
+
+Acceptance:
+- [ ] Provides actionable feedback
+- [ ] Reflection loop converges
+- [ ] Max 3 retries enforced
+- [ ] Tests passing
+
+---
+
+WEEK 2-3 SUMMARY:
+Total Issues: 9
+Total Effort: ~51 hours
+Status: All Todo
+Blockers: Depends on Week 1 completion
+Dependencies: Heavy inter-dependencies
+
+WEEK 2-3 SUCCESS CRITERIA:
+- [ ] All 9 agents implemented
+- [ ] All agents have unit tests (80%+ coverage)
+- [ ] All agents tested individually
+- [ ] No merge conflicts in feature branches
+- [ ] Daily commits from all team members
+
+================================================================================
+                       MILESTONE 3: WEEK 3
+                Integration & Orchestration (50 hrs)
+================================================================================
+
+Milestone: Week 3 - Integration
+Start: Monday (June 19, 2026)
+End: Friday (June 27, 2026)
+Owner: Rohan & Frontend Lead
+Status: Not Started
+
+Goal: Full workflow orchestration working end-to-end.
+
+---
+
+ISSUES FOR MILESTONE 3:
+
+[3.1] WORKFLOW ORCHESTRATION
+Priority: CRITICAL
+Owner: Rohan
+Effort: 6 hours
+Status: TODO
+Branch: feature/orchestrator-agent
+Depends on: [2.1-2.9]
+
+Tasks:
+- [ ] Create src/workflow/orchestration.py
+- [ ] Implement agent sequencing
+- [ ] Implement task routing
+- [ ] Implement error handling
+- [ ] Implement state passing
+- [ ] Implement retry logic
+- [ ] Create src/workflow/state_manager.py
+- [ ] Write integration tests
+- [ ] Document workflow
+
+Acceptance:
+- [ ] All agents execute in correct order
+- [ ] State properly managed
+- [ ] Errors don't crash system
+- [ ] Tests passing
+
+---
+
+[3.2] FASTAPI SERVICE
+Priority: CRITICAL
+Owner: Frontend/DevOps
+Effort: 6 hours
+Status: TODO
+Branch: feature/frontend-api-deployment
+
+Tasks:
+- [ ] Create src/app.py (FastAPI app)
+- [ ] Create src/models/request.py
+- [ ] Create src/models/response.py
+- [ ] Implement /health endpoint
+- [ ] Implement /analyze/page endpoint
+- [ ] Implement /analyze/post endpoint
+- [ ] Implement /results/{id} endpoint
+- [ ] Add error handling middleware
+- [ ] Add CORS configuration
+- [ ] Add request validation
+
+Acceptance:
+- [ ] All endpoints working
+- [ ] Validation working
+- [ ] Error handling working
+- [ ] CORS configured
+
+---
+
+[3.3] API DOCUMENTATION
+Priority: IMPORTANT
+Owner: Frontend/DevOps
+Effort: 3 hours
+Status: TODO
+Branch: feature/frontend-api-deployment
+Depends on: [3.2]
+
+Tasks:
+- [ ] Create Swagger/OpenAPI documentation
+- [ ] Document all endpoints
+- [ ] Document request/response schemas
+- [ ] Create example requests
+- [ ] Create authentication guide (if needed)
+- [ ] Deploy docs to /docs endpoint
+
+Acceptance:
+- [ ] Swagger UI working at /docs
+- [ ] All endpoints documented
+- [ ] Examples clear and correct
+
+---
+
+[3.4] END-TO-END INTEGRATION TESTS
+Priority: CRITICAL
+Owner: QA Lead (Rohan)
+Effort: 8 hours
+Status: TODO
+
+Tasks:
+- [ ] Create tests/test_integration.py
+- [ ] Test complete workflow (end-to-end)
+- [ ] Test with real Instagram data
+- [ ] Test error scenarios
+- [ ] Test timeout handling
+- [ ] Test concurrent requests
+- [ ] Measure performance
+- [ ] Generate coverage report
+
+Acceptance:
+- [ ] Full workflow works end-to-end
+- [ ] Performance acceptable (< 30s per analysis)
+- [ ] All tests passing
+- [ ] Coverage >= 80%
+
+---
+
+[3.5] AGENT UNIT TESTS
+Priority: IMPORTANT
+Owner: Each Agent Owner
+Effort: 10 hours
+Status: TODO
+
+Tasks (Each Agent):
+- [ ] Create tests/test_agents.py
+- [ ] Test with sample inputs
+- [ ] Test edge cases
+- [ ] Test error handling
+- [ ] Mock external dependencies
+- [ ] Measure code coverage
+
+Acceptance:
+- [ ] 80%+ coverage per agent
+- [ ] All tests passing
+- [ ] Edge cases handled
+
+---
+
+WEEK 3 SUMMARY:
+Total Issues: 5
+Total Effort: ~33 hours
+Status: All Todo
+Blockers: Depends on Week 2 completion
+
+WEEK 3 SUCCESS CRITERIA:
+- [ ] Full workflow runs end-to-end
+- [ ] API service working
+- [ ] All tests passing (90%+ coverage)
+- [ ] No integration issues
+- [ ] Performance acceptable
+
+================================================================================
+                       MILESTONE 4: WEEK 4
+                    Demo & Deployment (40 hrs)
+================================================================================
+
+Milestone: Week 4 - Demo & Deployment
+Start: Monday (June 26, 2026)
+End: Friday (June 30, 2026)
+Owner: Team
+Status: Not Started
+
+Goal: Ready for FDE presentation and production deployment.
+
+---
+
+ISSUES FOR MILESTONE 4:
+
+[4.1] DEMO APPLICATION
+Priority: CRITICAL
+Owner: Frontend/DevOps
+Effort: 6 hours
+Status: TODO
+Branch: feature/frontend-api-deployment
+
+Tasks:
+- [ ] Create demo interface (CLI or web)
+- [ ] Create demo dataset (sample Instagram pages)
+- [ ] Create demo walkthrough script
+- [ ] Test demo end-to-end
+- [ ] Document demo steps
+- [ ] Create demo video (optional)
+
+Acceptance:
+- [ ] Demo runs without errors
+- [ ] Shows all agent capabilities
+- [ ] Completes in < 5 minutes
+- [ ] Results are clear and impressive
+
+---
+
+[4.2] DOCKER SETUP
+Priority: CRITICAL
+Owner: Frontend/DevOps
+Effort: 5 hours
+Status: TODO
+Branch: feature/frontend-api-deployment
+
+Tasks:
+- [ ] Create Dockerfile
+- [ ] Create docker-compose.yml
+- [ ] Test Docker build
+- [ ] Test Docker run
+- [ ] Document Docker setup
+- [ ] Create startup script
+
+Acceptance:
+- [ ] Docker builds successfully
+- [ ] Can run with docker-compose
+- [ ] Services start correctly
+- [ ] Can access API at localhost:8000
+
+---
+
+[4.3] DOCUMENTATION
+Priority: IMPORTANT
+Owner: Team
+Effort: 8 hours
+Status: TODO
+
+Tasks:
+- [ ] Create docs/API_REFERENCE.md
+- [ ] Create docs/SETUP_GUIDE.md
+- [ ] Create docs/DEPLOYMENT.md
+- [ ] Create architecture diagrams
+- [ ] Create agent runbooks
+- [ ] Create troubleshooting guide
+- [ ] Create contribution guide
+
+Acceptance:
+- [ ] Documentation complete
+- [ ] Setup guide tested (others follow it)
+- [ ] Deployment guide tested
+- [ ] All readers understand system
+
+---
+
+[4.4] FINAL TESTING & QA
+Priority: CRITICAL
+Owner: QA Lead
+Effort: 6 hours
+Status: TODO
+
+Tasks:
+- [ ] Run complete test suite
+- [ ] Verify all features working
+- [ ] Performance testing
+- [ ] Load testing (10 concurrent requests)
+- [ ] Error scenario testing
+- [ ] Security testing (basic)
+- [ ] Generate final test report
+
+Acceptance:
+- [ ] All tests passing (90%+ coverage)
+- [ ] No critical bugs
+- [ ] Performance meets targets
+- [ ] Ready for demo
+
+---
+
+[4.5] DEMO PREPARATION
+Priority: CRITICAL
+Owner: Rohan
+Effort: 4 hours
+Status: TODO
+
+Tasks:
+- [ ] Prepare presentation slides
+- [ ] Practice demo (multiple times)
+- [ ] Prepare backup demo (if live fails)
+- [ ] Create talking points
+- [ ] Prepare for questions
+- [ ] Review FDE requirements
+
+Acceptance:
+- [ ] Team confident in demo
+- [ ] Presentation clear and concise
+- [ ] Demo runs reliably
+- [ ] Ready for judges
+
+---
+
+[4.6] FINAL CLEANUP & POLISH
+Priority: IMPORTANT
+Owner: Rohan
+Effort: 4 hours
+Status: TODO
+
+Tasks:
+- [ ] Code cleanup (no console errors)
+- [ ] Remove debug logging
+- [ ] Fix all linting issues
+- [ ] Update all documentation
+- [ ] Final code review
+- [ ] Commit final changes
+
+Acceptance:
+- [ ] No console warnings/errors
+- [ ] Code is clean and well-formatted
+- [ ] Documentation is complete
+- [ ] Ready for submission
+
+---
+
+WEEK 4 SUMMARY:
+Total Issues: 6
+Total Effort: ~33 hours
+Status: All Todo
+Blockers: Depends on Week 3 completion
+
+WEEK 4 SUCCESS CRITERIA:
+- [ ] Demo working flawlessly
+- [ ] Docker deployment working
+- [ ] Documentation complete
+- [ ] All tests passing
+- [ ] Ready for FDE submission
+- [ ] Team confident in presentation
+
+================================================================================
+                           OVERALL SUMMARY
+================================================================================
+
+Total Milestones: 4
+Total Issues: 28
+Total Effort: 200-240 person-hours
+Timeline: 4 weeks
+Team Size: 5 people
+
+MILESTONES CHECKLIST:
+- [ ] Milestone 1: Week 1 Infrastructure (40 hrs)
+- [ ] Milestone 2: Week 2-3 Agents (120 hrs)
+- [ ] Milestone 3: Week 3 Integration (50 hrs)
+- [ ] Milestone 4: Week 4 Demo (40 hrs)
+
+CRITICAL PATH:
+1. Week 1: Infrastructure MUST be done before agents
+2. Week 2: Backend agents MUST finish before integration
+3. Week 3: Integration MUST work before demo
+4. Week 4: Demo MUST be tested before FDE
+
+PARALLELIZABLE WORK:
+- Week 1: All infrastructure tasks can run in parallel
+- Week 2: All agent development can run in parallel (different branches)
+- Week 3: Some tasks parallel (API + orchestration), others sequential
+- Week 4: Demo, docker, docs can run in parallel
+
+FDE SUBMISSION REQUIREMENTS:
+- [ ] All source code in Git
+- [ ] All tests passing (90%+ coverage)
+- [ ] Working application
+- [ ] Live demonstration
+- [ ] Complete documentation
+- [ ] No API keys in repository
+
+SUCCESS = ALL MILESTONES COMPLETE BY FRIDAY WEEK 4
+
+================================================================================
+                         STATUS TRACKING FORMAT
+================================================================================
+
+For each issue, update:
+
+Status: TODO / IN PROGRESS / DONE / BLOCKED
+Progress: X% complete
+Blockers: None / [List of blockers]
+Notes: [Any relevant notes]
+Last Update: [Date]
+
+Example:
+
+[2.1] RAG PIPELINE IMPLEMENTATION
+Status: IN PROGRESS
+Progress: 40% (ingestion done, similarity search in progress)
+Blockers: Waiting for sample data from Instagram API
+Notes: Performance tuning needed - queries taking 800ms instead of 500ms target
+Last Update: 2026-06-20
+
+================================================================================
+
+END OF MILESTONES & ISSUES
+
+Created: 2026-06-12
+Last Updated: 2026-06-12
+Status: READY FOR TEAM USE

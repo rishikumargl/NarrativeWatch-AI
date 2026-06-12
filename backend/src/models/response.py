@@ -36,29 +36,41 @@ class AnalysisResponse(BaseModel):
     recommendations: List[str] = Field(default_factory=list)
 
 
-class UserAnalysisResponse(AnalysisResponse):
-    """Response for Twitter user analysis."""
+class ArticleAnalysisResponse(AnalysisResponse):
+    """Response for news article analysis."""
 
-    user_username: str = Field(..., description="Twitter user handle")
-    follower_count: Optional[int] = Field(default=None)
-    tweets_analyzed: int = Field(..., description="Number of tweets analyzed")
+    article_title: str = Field(..., description="Article title")
+    source: str = Field(..., description="News source")
+    author: Optional[str] = Field(default=None, description="Article author")
+    published_at: Optional[str] = Field(default=None, description="Publication date")
+    article_url: Optional[str] = Field(default=None, description="Article URL")
     detected_patterns: Dict[str, Any] = Field(default_factory=dict)
-    campaign_involvement: Optional[Dict[str, Any]] = Field(default=None)
+    misinformation_signals: Optional[Dict[str, Any]] = Field(default=None)
+    bias_indicators: Optional[Dict[str, Any]] = Field(default=None)
 
 
-class TweetAnalysisResponse(AnalysisResponse):
-    """Response for single tweet analysis."""
+class NewsSearchResponse(BaseModel):
+    """Response for news search results."""
 
-    tweet_id: str = Field(..., description="Twitter tweet ID")
-    user_username: str = Field(..., description="User that posted this")
-    content_type: str = Field(..., description="Type of content")
-    engagement_metrics: Dict[str, Any] = Field(default_factory=dict)
-    suspected_campaign: Optional[str] = Field(default=None)
+    query: str = Field(..., description="Search query used")
+    total_results: int = Field(..., description="Total articles found")
+    articles_analyzed: int = Field(..., description="Articles in response")
+    articles: List[ArticleAnalysisResponse] = Field(
+        ..., description="Analyzed articles"
+    )
+    dominant_narratives: List[str] = Field(default_factory=list)
+    coordinated_campaigns: List[Dict[str, Any]] = Field(default_factory=list)
+    overall_trust_score: float = Field(
+        ..., ge=0.0, le=100.0, description="Average trust score"
+    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 # Keep aliases for backwards compatibility
-PageAnalysisResponse = UserAnalysisResponse
-PostAnalysisResponse = TweetAnalysisResponse
+PageAnalysisResponse = ArticleAnalysisResponse
+PostAnalysisResponse = ArticleAnalysisResponse
+UserAnalysisResponse = ArticleAnalysisResponse
+TweetAnalysisResponse = ArticleAnalysisResponse
 
 
 class CampaignAnalysisResponse(BaseModel):

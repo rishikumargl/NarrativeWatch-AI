@@ -11,51 +11,52 @@ logger = logging.getLogger(__name__)
 
 
 class ContentAnalyzerAgent(BaseAgent):
-    """Analyze Twitter tweet content and extract features."""
+    """Analyze news article content and extract features."""
 
     def __init__(self):
         """Initialize Content Analyzer Agent."""
         super().__init__(
             name="Content Analyzer",
-            description="Extract and classify tweet content for emotional language, "
-                       "narrative themes, hashtag patterns, mention patterns, and engagement metrics"
+            description="Extract and classify article content for emotional language, "
+                       "narrative themes, factual claims, source credibility, and writing patterns"
         )
         self.text_processor = TextProcessor()
 
-    def run(self, tweet_data: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, article_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Analyze Twitter tweet content.
+        Analyze news article content.
 
         Args:
-            tweet_data: Dict with text, hashtags, mentions, comments, etc.
+            article_data: Dict with title, content, source, author, etc.
 
         Returns:
             Dict with analysis results
         """
         try:
-            if not self.validate_input(tweet_data):
+            if not self.validate_input(article_data):
                 return {"status": "error", "message": "Invalid input data"}
 
-            text = tweet_data.get("text", "")
-            hashtags = tweet_data.get("hashtags", [])
-            mentions = tweet_data.get("mentions", [])
-            replies = tweet_data.get("replies", [])
-            posting_time = tweet_data.get("created_at")
-            engagement_data = tweet_data.get("engagement", {})
+            title = article_data.get("title", "")
+            content = article_data.get("content", "")
+            description = article_data.get("description", "")
+            source = article_data.get("source", "")
+            author = article_data.get("author", "")
+            published_at = article_data.get("published_at")
+
+            full_text = f"{title} {description} {content}"
 
             analysis = {
-                "emotional_language": self._analyze_emotional_language(text, replies),
-                "narrative_themes": self._analyze_narrative_themes(text, replies),
-                "hashtag_patterns": self._analyze_hashtag_patterns(hashtags),
-                "mention_patterns": self._analyze_mention_patterns(mentions),
-                "posting_pattern": self._analyze_posting_pattern(posting_time),
-                "engagement_metrics": self._analyze_engagement_metrics(engagement_data),
-                "text_patterns": self._analyze_text_patterns(text),
+                "emotional_language": self._analyze_emotional_language(full_text),
+                "narrative_themes": self._analyze_narrative_themes(full_text),
+                "source_credibility": self._analyze_source_credibility(source, author),
+                "factual_claims": self._analyze_factual_claims(content),
+                "writing_patterns": self._analyze_writing_patterns(title, content),
+                "text_patterns": self._analyze_text_patterns(full_text),
             }
 
             return {
                 "status": "success",
-                "agent": "Twitter Content Analyzer",
+                "agent": "News Content Analyzer",
                 "analysis": analysis,
                 "timestamp": datetime.utcnow().isoformat(),
             }
@@ -72,9 +73,9 @@ class ContentAnalyzerAgent(BaseAgent):
             return False
         return True
 
-    def _analyze_emotional_language(self, text: str, replies: List[str]) -> Dict[str, Any]:
-        """Analyze emotional language in tweet."""
-        all_text = text + " " + " ".join(replies)
+    def _analyze_emotional_language(self, text: str) -> Dict[str, Any]:
+        """Analyze emotional language in article."""
+        all_text = text
 
         sentiment = self.text_processor.calculate_sentiment(all_text)
         subjectivity = self.text_processor.calculate_subjectivity(all_text)
@@ -98,9 +99,9 @@ class ContentAnalyzerAgent(BaseAgent):
             "overall_tone": self._determine_tone(sentiment, emotional_intensity),
         }
 
-    def _analyze_narrative_themes(self, text: str, replies: List[str]) -> List[str]:
-        """Identify narrative themes in tweet."""
-        all_text = (text + " " + " ".join(replies)).lower()
+    def _analyze_narrative_themes(self, text: str) -> List[str]:
+        """Identify narrative themes in article."""
+        all_text = text.lower()
 
         themes = []
         theme_patterns = {
@@ -168,34 +169,105 @@ class ContentAnalyzerAgent(BaseAgent):
             "hashtag_categories": self._categorize_hashtags(hashtags),
         }
 
-    def _analyze_mention_patterns(self, mentions: List[str]) -> Dict[str, Any]:
-        """Analyze mention patterns and influencer targeting."""
-        if not mentions:
-            return {
-                "total_mentions": 0,
-                "unique_mentions": 0,
-                "mention_frequency": {},
-                "mention_types": {},
-            }
+    def _analyze_source_credibility(self, source: str, author: str) -> Dict[str, Any]:
+        """Analyze news source and author credibility."""
+        credibility_score = 0.5  # Default neutral
 
-        from collections import Counter
-        mention_counts = Counter(mentions)
-
-        # Categorize mentions
-        mention_types = {
-            "official": [],  # Official accounts (verified)
-            "influencer": [],  # Influential accounts
-            "peer": [],  # Regular user accounts
-            "bot": [],  # Automated accounts
+        # Check source reputation
+        reputable_sources = {
+            "BBC", "Reuters", "AP News", "The Guardian", "NPR",
+            "Associated Press", "Deutsche Welle", "Agence France-Presse",
+            "The New York Times", "The Washington Post"
         }
+
+        suspicious_indicators = [
+            "fake", "hoax", "satire", "scam", "fraud",
+            "conspiracy", "exposed", "coverup"
+        ]
+
+        if any(src in source for src in reputable_sources):
+            credibility_score += 0.2
+
+        if any(indicator in source.lower() for indicator in suspicious_indicators):
+            credibility_score -= 0.3
+
+        author_present = bool(author and author.strip())
+        if author_present:
+            credibility_score += 0.1
 
         return {
-            "total_mentions": len(mentions),
-            "unique_mentions": len(set(mentions)),
-            "mention_frequency": dict(mention_counts.most_common(10)),
-            "mention_types": mention_types,
-            "network_effect": len(set(mentions)) / max(1, len(mentions)),
+            "source": source,
+            "credibility_score": min(1.0, max(0.0, credibility_score)),
+            "author_present": author_present,
+            "is_reputable_source": any(src in source for src in reputable_sources),
+            "confidence": "medium",
         }
+
+    def _analyze_factual_claims(self, content: str) -> Dict[str, Any]:
+        """Analyze potential factual claims in article."""
+        claims = {
+            "total_sentences": 0,
+            "sentences_with_numbers": 0,
+            "sentences_with_quotes": 0,
+            "sentences_with_assertions": 0,
+            "has_sources": False,
+            "has_evidence": False,
+        }
+
+        sentences = [s.strip() for s in content.split(".") if s.strip()]
+        claims["total_sentences"] = len(sentences)
+
+        import re
+        for sentence in sentences:
+            # Check for numbers (statistics, dates)
+            if re.search(r"\d+", sentence):
+                claims["sentences_with_numbers"] += 1
+
+            # Check for quotes
+            if '"' in sentence or "'" in sentence:
+                claims["sentences_with_quotes"] += 1
+
+            # Check for assertion patterns
+            if any(word in sentence.lower() for word in ["said", "stated", "reported", "found", "showed"]):
+                claims["sentences_with_assertions"] += 1
+
+        # Check for sources/references
+        if "source" in content.lower() or "according to" in content.lower():
+            claims["has_sources"] = True
+
+        if "study" in content.lower() or "research" in content.lower():
+            claims["has_evidence"] = True
+
+        return claims
+
+    def _analyze_writing_patterns(self, title: str, content: str) -> Dict[str, Any]:
+        """Analyze writing style and patterns."""
+        patterns = {
+            "title_length": len(title.split()),
+            "content_length": len(content.split()),
+            "avg_word_length": 0.0,
+            "has_exclamation": "!" in title or "!" in content,
+            "has_questions": "?" in title or "?" in content,
+            "sensational_indicators": [],
+        }
+
+        # Calculate average word length
+        all_words = (title + " " + content).split()
+        if all_words:
+            patterns["avg_word_length"] = sum(len(w) for w in all_words) / len(all_words)
+
+        # Check for sensational language
+        sensational = [
+            "shocking", "unbelievable", "you won't believe",
+            "secret", "exposed", "must read", "breaking",
+            "exclusive", "amazing", "terrible"
+        ]
+
+        for word in sensational:
+            if word in (title + " " + content).lower():
+                patterns["sensational_indicators"].append(word)
+
+        return patterns
 
     def _categorize_hashtags(self, hashtags: List[str]) -> Dict[str, List[str]]:
         """Categorize hashtags by type."""

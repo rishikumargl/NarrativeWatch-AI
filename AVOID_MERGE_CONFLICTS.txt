@@ -1,0 +1,318 @@
+================================================================================
+                   HOW TO AVOID MERGE CONFLICTS
+================================================================================
+
+YOU: Backend Specialist (Member 2)
+YOUR BRANCH: feature/backend-rag-apis
+YOUR FILES: src/database/, src/apis/, src/utils/embedding_utils.py, scripts/
+
+================================================================================
+                        GOLDEN RULES
+================================================================================
+
+RULE 1: ONLY EDIT YOUR OWN FILES
+Your files:
+✓ src/database/postgres_client.py
+✓ src/database/models.py
+✓ src/apis/tavily_api.py
+✓ src/apis/instagram_api.py
+✓ src/apis/llm_client.py
+✓ src/utils/embedding_utils.py
+✓ scripts/init_db.py
+✓ tests/test_database.py
+✓ tests/test_apis.py
+✓ tests/test_embeddings.py
+
+DO NOT TOUCH:
+✗ src/agents/ (Rohan's area)
+✗ src/workflow/ (Rohan's area)
+✗ src/utils/text_processor.py (ML/NLP's)
+✗ src/utils/scoring.py (Data Eng's)
+✗ README.md (shared, ask first)
+✗ requirements.txt (shared, coordinate)
+✗ Any config files
+
+RULE 2: PULL DAILY
+Every morning before coding:
+$ git pull origin develop
+
+This keeps you in sync with what others have merged.
+
+RULE 3: COMMIT TO YOUR BRANCH ONLY
+Always push to your branch:
+$ git push origin feature/backend-rag-apis
+
+Never push to develop directly.
+
+RULE 4: USE FEATURE BRANCH FOR EVERYTHING
+All your work stays in feature/backend-rag-apis
+Only merge to develop when milestone is done (with PR review)
+
+================================================================================
+                        YOUR FILE OWNERSHIP
+================================================================================
+
+BACKEND SPECIALIST FILES (Only you edit these):
+
+src/database/
+├── postgres_client.py    ← You own this
+├── models.py             ← You own this
+└── __init__.py           ← You can create
+
+src/apis/
+├── tavily_api.py         ← You own this
+├── instagram_api.py      ← You own this
+├── llm_client.py         ← You own this
+└── __init__.py           ← You can create
+
+src/utils/
+├── embedding_utils.py    ← You own this
+└── __init__.py           ← You can create
+
+scripts/
+└── init_db.py            ← You own this
+
+tests/
+├── test_database.py      ← You own this
+├── test_apis.py          ← You own this
+├── test_embeddings.py    ← You own this
+└── __init__.py           ← You can create
+
+OTHERS OWN:
+- src/agents/* (Rohan, ML/NLP, Data Eng)
+- src/workflow/* (Rohan)
+- src/utils/text_processor.py (ML/NLP)
+- src/utils/scoring.py (Data Eng)
+- src/app.py (Frontend)
+- src/models/* (Frontend)
+
+================================================================================
+                        DAILY WORKFLOW (NO CONFLICTS)
+================================================================================
+
+EVERY MORNING (10 seconds):
+$ git pull origin develop
+# This pulls any code merged by others
+
+DURING DAY:
+$ git add src/database/ src/apis/ src/utils/embedding_utils.py scripts/
+$ git commit -m "[backend] what you did"
+
+EVERY EVENING:
+$ git push origin feature/backend-rag-apis
+
+NO ONE ELSE TOUCHES YOUR FILES, SO NO CONFLICTS!
+
+================================================================================
+                        IF CONFLICT HAPPENS (UNLIKELY)
+================================================================================
+
+Conflict would happen if:
+1. Someone else edited src/database/postgres_client.py (unlikely, it's your file)
+2. You both edited src/utils/embedding_utils.py (unlikely, it's your file)
+3. Changes to shared files like requirements.txt
+
+IF THIS HAPPENS:
+
+Step 1: See what happened
+$ git status
+
+Step 2: Look at the conflict
+$ git diff
+
+Step 3: Talk to Rohan
+Ask him who else edited this file and coordinate
+
+Step 4: Fix it
+Either keep your version or theirs, or merge both
+$ git add fixed_file.py
+$ git commit -m "[backend] merge: resolve conflict with [other person]"
+
+Step 5: Push
+$ git push origin feature/backend-rag-apis
+
+================================================================================
+                    FILE STRUCTURE (CLEAN SEPARATION)
+================================================================================
+
+By design, NO CONFLICTS because everyone works in separate directories:
+
+ROHAN (feature/orchestrator-agent):
+├── src/agents/orchestrator.py
+├── src/agents/base_agent.py
+└── src/workflow/
+
+BACKEND YOU (feature/backend-rag-apis):
+├── src/database/
+├── src/apis/
+└── src/utils/embedding_utils.py
+
+ML/NLP (feature/ml-nlp-agents):
+├── src/agents/content_analyzer.py
+├── src/agents/bias_detector.py
+├── src/agents/bot_detector.py
+└── src/utils/text_processor.py
+
+DATA ENG (feature/data-eng-agents):
+├── src/agents/campaign_detector.py
+├── src/agents/synthesis_agent.py
+├── src/agents/reviewer_agent.py
+├── src/workflow/reflection_loop.py
+└── src/utils/scoring.py
+
+FRONTEND (feature/frontend-api-deployment):
+├── src/app.py
+├── src/models/
+├── Dockerfile
+└── docker-compose.yml
+
+SHARED (coordinate with Rohan):
+├── README.md
+├── requirements.txt
+├── .env.example
+└── [Docs]
+
+================================================================================
+                    IF REQUIREMENTS.TXT CHANGES
+================================================================================
+
+Scenario: You need a new package
+
+Step 1: Add it locally
+$ pip install new-package
+
+Step 2: Tell Rohan
+"I need to add X package to requirements.txt"
+
+Step 3: Rohan adds it to requirements.txt on develop
+
+Step 4: You pull it
+$ git pull origin develop
+
+No conflict because Rohan manages requirements.txt, not you.
+
+================================================================================
+                        COMMUNICATION = NO CONFLICTS
+================================================================================
+
+BEFORE EDITING SHARED FILES, ASK ROHAN:
+- README.md changes? Ask first
+- requirements.txt changes? Ask first
+- .env.example changes? Ask first
+- Any changes outside src/database/, src/apis/, src/utils/embedding_utils.py?
+  Ask Rohan first!
+
+GOOD EXAMPLE:
+"Hey Rohan, I need to add 'pgvector>=0.3.0' to requirements.txt"
+→ Rohan adds it to develop
+→ You pull it
+→ No conflict!
+
+BAD EXAMPLE:
+You add it directly to requirements.txt on your branch
+→ Others add different packages to develop's requirements.txt
+→ CONFLICT when merging!
+
+================================================================================
+                    COMMIT MESSAGE CONVENTION
+================================================================================
+
+Format: [backend] action: description
+
+Examples (GOOD):
+✓ [backend] feat: implement postgres connection pool
+✓ [backend] test: add database tests
+✓ [backend] fix: handle API errors
+✓ [backend] refactor: optimize queries
+
+Examples (BAD - AVOID):
+✗ "fix" - not descriptive
+✗ "WIP" - work in progress, push complete work
+✗ "[ml-nlp] feat: ..." - wrong prefix, you're [backend]
+✗ "Updated stuff" - not clear what
+
+GOOD commits = CLEAR history = EASY merges
+
+================================================================================
+                    YOUR SAFE WORKFLOW (SUMMARY)
+================================================================================
+
+MORNING (before coding):
+$ git pull origin develop
+
+DURING DAY (write code):
+Only edit these directories:
+- src/database/
+- src/apis/
+- src/utils/embedding_utils.py
+- scripts/
+- tests/
+
+MULTIPLE TIMES (commit your work):
+$ git add src/database/ src/apis/ src/utils/embedding_utils.py scripts/
+$ git commit -m "[backend] what you did"
+
+EVENING (before leaving):
+$ git push origin feature/backend-rag-apis
+
+RESULT: NO CONFLICTS with others!
+
+================================================================================
+                    WHEN TO CREATE PULL REQUEST
+================================================================================
+
+AFTER COMPLETING:
+- All Week 1 tasks (Tue-Fri)
+- All Week 2 tasks (Mon-Fri)
+- Integration phase (Week 3)
+
+STEPS:
+1. Push all commits to feature/backend-rag-apis
+2. Go to GitHub
+3. Click "Compare & pull request"
+4. Set base to: develop
+5. Write description
+6. Ask Rohan to review
+7. After approval: Merge!
+
+NO MANUAL MERGING = LESS CONFLICTS
+
+================================================================================
+                        RED FLAGS (CALL FOR HELP)
+================================================================================
+
+🚨 Red flags = Ask Rohan immediately:
+
+- You see merge conflict
+- You need to edit someone else's file
+- Someone needs to edit your file
+- Changes needed in shared files
+- Git is acting weird
+- Status shows unexpected changes
+- You accidentally pushed to develop
+
+Just ask. Don't guess.
+
+Rohan is your conflict prevention expert!
+
+================================================================================
+
+REMEMBER:
+
+1. Your files only = No conflicts
+2. Pull daily = Stay in sync
+3. Commit to your branch = Safe
+4. Ask Rohan for shared files = Coordinated
+5. Clear commit messages = Easy history
+
+YOU'LL HAVE ZERO MERGE CONFLICTS! ✓
+
+================================================================================
+
+NOW READY TO CODE?
+
+Go to BACKEND_MEMBER_GUIDE.txt and start Task 1!
+
+🚀
+
+================================================================================

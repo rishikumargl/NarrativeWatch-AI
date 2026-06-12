@@ -268,14 +268,23 @@ async def get_workflow_status(workflow_id: str):
 
 
 # Background task functions
-async def _run_page_analysis(workflow_id: str, analysis_id: str, request: AnalyzePageRequest):
-    """Run page analysis in background."""
+def _run_page_analysis(workflow_id: str, analysis_id: str, request: AnalyzePageRequest):
+    """Run page analysis in background (sync wrapper)."""
     try:
+        import asyncio
         logger.info(f"Running page analysis for {request.username}")
 
-        # Execute workflow
-        state = await orchestration_engine.execute_workflow(
-            workflow_id, f"Analyze page: {request.username}", AGENTS
+        # Execute workflow - proper async handling
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        state = loop.run_until_complete(
+            orchestration_engine.execute_workflow(
+                workflow_id, f"Analyze page: {request.username}", AGENTS
+            )
         )
 
         # Store result
@@ -297,14 +306,23 @@ async def _run_page_analysis(workflow_id: str, analysis_id: str, request: Analyz
         logger.error(f"Background analysis error: {e}")
 
 
-async def _run_post_analysis(workflow_id: str, analysis_id: str, request: AnalyzePostRequest):
-    """Run post analysis in background."""
+def _run_post_analysis(workflow_id: str, analysis_id: str, request: AnalyzePostRequest):
+    """Run post analysis in background (sync wrapper)."""
     try:
+        import asyncio
         logger.info(f"Running post analysis for {request.post_url}")
 
-        # Execute workflow
-        state = await orchestration_engine.execute_workflow(
-            workflow_id, f"Analyze post: {request.post_url}", AGENTS
+        # Execute workflow - proper async handling
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        state = loop.run_until_complete(
+            orchestration_engine.execute_workflow(
+                workflow_id, f"Analyze post: {request.post_url}", AGENTS
+            )
         )
 
         # Store result

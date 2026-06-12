@@ -110,7 +110,7 @@ class ComprehensiveAnalysis:
             self.final_recommendations = []
 
 
-class Orchestrator:
+class OrchestratorAgent:
     """Main orchestrator coordinating all analysis agents."""
 
     def __init__(self):
@@ -461,6 +461,6 @@ class Orchestrator:
         return list(set(recommendations))  # Remove duplicates
 
 
-def get_orchestrator() -> Orchestrator:
+def get_orchestrator() -> OrchestratorAgent:
     """Get orchestrator instance."""
-    return Orchestrator()
+    return OrchestratorAgent()

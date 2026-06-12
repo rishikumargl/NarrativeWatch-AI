@@ -1,22 +1,15 @@
-"""Base agent class for all NarrativeWatch AI agents."""
+"""Base agent class for all NarrativeWatch AI agents using Groq LLM."""
 
-from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import logging
+import os
+from src.config import settings
 
 try:
-    from langchain_core.tools import Tool
-    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-    from langchain_google_vertexai import ChatVertexAI
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
+    from langchain_groq import ChatGroq
+    LANGCHAIN_AVAILABLE = True
 except ImportError:
-    # Mock imports for testing
-    Tool = None
-    ChatPromptTemplate = None
-    MessagesPlaceholder = None
-    ChatVertexAI = None
-    AgentExecutor = None
-    create_tool_calling_agent = None
+    LANGCHAIN_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -30,20 +23,10 @@ class AgentConfig:
         description: str,
         temperature: float = 0.7,
         max_iterations: int = 5,
-        model_name: str = "gemini-2.5-pro",
+        model_name: str = "mixtral-8x7b-32768",
         timeout: int = 300
     ):
-        """
-        Initialize agent configuration.
-
-        Args:
-            name: Agent name
-            description: Agent description
-            temperature: LLM temperature (0-1)
-            max_iterations: Max iterations for agent execution
-            model_name: LLM model to use
-            timeout: Timeout in seconds
-        """
+        """Initialize agent configuration."""
         self.name = name
         self.description = description
         self.temperature = temperature
@@ -52,19 +35,21 @@ class AgentConfig:
         self.timeout = timeout
 
 
-class BaseAgent(ABC):
-    """Base class for all agents in the NarrativeWatch system."""
+class BaseAgent:
+    """Base class for all agents in the NarrativeWatch system using Groq."""
 
-    def __init__(self, config: Optional['AgentConfig'] = None, name: str = None, description: str = None, model_name: str = "gemini-2.5-pro"):
-        """
-        Initialize base agent.
-
-        Args:
-            config: AgentConfig instance (takes precedence over individual args)
-            name: Agent name
-            description: Agent description
-            model_name: LLM model to use
-        """
+    def __init__(
+        self,
+        config: Optional['AgentConfig'] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        tools: Optional[List[Dict]] = None,
+        temperature: float = 0.7,
+        max_iterations: int = 5,
+        groq_api_key: Optional[str] = None,
+        model_name: str = "mixtral-8x7b-32768"
+    ):
+        """Initialize agent with Groq LLM."""
         if config:
             self.name = config.name
             self.description = config.description
@@ -75,90 +60,97 @@ class BaseAgent(ABC):
             self.name = name
             self.description = description
             self.model_name = model_name
-            self.temperature = 0.7
-            self.max_iterations = 5
+            self.temperature = temperature
+            self.max_iterations = max_iterations
+
+        self.tools = tools or []
+        self.groq_api_key = groq_api_key or settings.GROQ_API_KEY
 
         self.llm = self._initialize_llm()
-        self.tools = self._define_tools()
-        self.executor = self._create_executor()
-        logger.info(f"Initialized {self.name} agent")
+        logger.info(f"Initialized {self.name} agent with model {self.model_name}")
 
     def _initialize_llm(self):
-        """Initialize the language model."""
-        if ChatVertexAI:
-            return ChatVertexAI(model_name=self.model_name, temperature=self.temperature)
-        else:
-            logger.warning("Vertex AI not available, using mock LLM")
+        """Initialize Groq language model."""
+        if not LANGCHAIN_AVAILABLE:
+            logger.warning(f"{self.name}: LangChain not available")
             return None
 
-    def _define_tools(self) -> List:
-        """
-        Define tools for this agent. Override in subclasses.
-
-        Returns:
-            List of Tool objects
-        """
-        return []
-
-    def _create_executor(self):
-        """Create agent executor with tools."""
-        if not ChatPromptTemplate:
-            logger.warning("LangChain not available, executor will be None")
-            return None
-
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", f"You are {self.name}. {self.description}"),
-            ("human", "{input}"),
-            MessagesPlaceholder(variable_name="agent_scratchpad"),
-        ])
-
-        agent = create_tool_calling_agent(self.llm, self.tools, prompt)
-        executor = AgentExecutor.from_agent_and_tools(
-            agent=agent,
-            tools=self.tools,
-            verbose=True,
-            max_iterations=self.max_iterations,
-            handle_parsing_errors=True
-        )
-        return executor
-
-    @abstractmethod
-    def run(self, input_data: Any) -> Dict[str, Any]:
-        """
-        Execute agent. Must be implemented by subclasses.
-
-        Args:
-            input_data: Input data for the agent
-
-        Returns:
-            Dict with agent results
-        """
-        pass
-
-    def validate_input(self, input_data: Any) -> bool:
-        """Validate input data. Override in subclasses for custom validation."""
-        return input_data is not None
-
-    def format_output(self, result: Any) -> Dict[str, Any]:
-        """Format agent output. Override in subclasses for custom formatting."""
-        return {"status": "success", "result": result}
-
-    def invoke(self, input_data: str) -> Dict[str, Any]:
-        """
-        Invoke agent with error handling.
-
-        Args:
-            input_data: Input for the agent
-
-        Returns:
-            Agent output
-        """
         try:
-            if not self.validate_input(input_data):
-                return {"status": "error", "message": "Invalid input"}
+            return ChatGroq(
+                model_name=self.model_name,
+                temperature=self.temperature,
+                groq_api_key=self.groq_api_key,
+                max_tokens=2048
+            )
+        except Exception as e:
+            logger.error(f"{self.name}: Failed to initialize LLM: {e}")
+            return None
 
-            result = self.executor.invoke({"input": str(input_data)})
-            return self.format_output(result)
+    def run(self, input_data: str) -> Dict[str, Any]:
+        """Execute the agent."""
+        try:
+            if not self.llm:
+                return {
+                    "status": "error",
+                    "message": "LLM not initialized",
+                    "agent": self.name
+                }
+
+            logger.info(f"{self.name} processing input: {input_data[:100]}...")
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": f"You are {self.name}. {self.description}\n\nYour goals:\n1. Provide accurate, evidence-based analysis\n2. Consider multiple perspectives\n3. Cite sources when making claims\n4. Be transparent about uncertainty\n5. Structure responses clearly"
+                },
+                {
+                    "role": "user",
+                    "content": input_data
+                }
+            ]
+
+            response = self.llm.invoke(messages)
+            return {
+                "status": "success",
+                "data": response.content if hasattr(response, 'content') else str(response),
+                "agent": self.name
+            }
         except Exception as e:
             logger.error(f"Error in {self.name}: {str(e)}", exc_info=True)
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+                "agent": self.name
+            }
+
+    def stream(self, input_data: str):
+        """Stream response from the agent."""
+        try:
+            if not self.llm:
+                yield {"error": "LLM not initialized"}
+                return
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": f"You are {self.name}. {self.description}"
+                },
+                {
+                    "role": "user",
+                    "content": input_data
+                }
+            ]
+
+            for chunk in self.llm.stream(messages):
+                if hasattr(chunk, 'content'):
+                    yield {"content": chunk.content}
+                else:
+                    yield {"content": str(chunk)}
+        except Exception as e:
+            logger.error(f"Stream error in {self.name}: {str(e)}")
+            yield {"error": str(e)}
+
+    def add_tool(self, tool: Dict) -> None:
+        """Add a tool to the agent."""
+        self.tools.append(tool)
+        logger.info(f"Added tool to {self.name}: {tool.get('name', 'unknown')}")

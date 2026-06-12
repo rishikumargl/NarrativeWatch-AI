@@ -51,18 +51,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize agents (global)
-AGENTS = {
-    "orchestrator": OrchestratorAgent(),
-    "content_analyzer": ContentAnalyzerAgent(),
-    "rag_agent": RAGAgent(),
-    "research_agent": ResearchAgent(),
-    "bias_detector": BiasDetectorAgent(),
-    "bot_detector": BotDetectorAgent(),
-    "campaign_detector": CampaignDetectorAgent(),
-    "synthesis_agent": SynthesisAgent(),
-    "reviewer_agent": ReviewerAgent(),
-}
+# Lazy-load agents to avoid blocking startup
+AGENTS = {}
 
 # Store workflow results
 WORKFLOW_RESULTS = {}

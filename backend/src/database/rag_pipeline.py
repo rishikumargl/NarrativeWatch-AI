@@ -1,15 +1,13 @@
 """RAG pipeline for ingestion and retrieval using PostgreSQL + pgvector."""
 
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, func
+from sqlalchemy import text
 
-from src.database.models import InstagramPost, InstagramPage, BiasPattern
-from src.database.postgres_client import get_client
+from src.database.connection import SessionLocal
 from src.utils.embedding_utils import get_embedding_client
-from src.apis.instagram_api import InstagramAPI
 
 logger = logging.getLogger(__name__)
 
@@ -19,397 +17,174 @@ class RAGPipeline:
 
     def __init__(self):
         """Initialize RAG pipeline."""
-        self.db_client = get_client()
         self.embedding_client = get_embedding_client()
-        self.instagram_api = InstagramAPI()
+        self.db = SessionLocal()
         logger.info("[OK] RAG pipeline initialized")
 
-    # ==================== INGESTION ====================
-
-    def ingest_instagram_post(
+    def ingest_article(
         self,
-        post_id: str,
-        page_username: str,
-        caption: str,
-        hashtags: Optional[List[str]] = None,
-        content_type: str = "text",
-        likes: int = 0,
-        comments: int = 0,
-        posting_time: Optional[datetime] = None,
-    ) -> str:
-        """Ingest Instagram post into vector database.
+        title: str,
+        content: str,
+        source: str = "NewsAPI",
+        url: Optional[str] = None,
+        author: Optional[str] = None,
+        published_at: Optional[datetime] = None,
+    ) -> Optional[str]:
+        """Ingest article into vector database.
 
         Args:
-            post_id: Unique post ID
-            page_username: Username of posting page
-            caption: Post caption
-            hashtags: List of hashtags
-            content_type: Type of content (image, video, etc.)
-            likes: Like count
-            comments: Comment count
-            posting_time: Time post was published
+            title: Article title
+            content: Article content
+            source: Source of the article
+            url: Article URL
+            author: Article author
+            published_at: Publication datetime
 
         Returns:
-            Post ID if successful
+            Article ID if successful
         """
         try:
-            # Generate embedding
-            embedding = self.embedding_client.embed_instagram_post(
-                caption=caption,
-                hashtags=hashtags,
-                content_type=content_type,
-            )
+            embedding = self.embedding_client.embed_text(content)
+            if not embedding:
+                logger.warning("Failed to generate embedding for article")
+                return None
 
-            # Create post object
-            post = InstagramPost(
-                post_id=post_id,
-                page_username=page_username,
-                caption=caption,
-                hashtags=hashtags or [],
-                content_type=content_type,
-                embedding=embedding,
-                likes=likes,
-                comments=comments,
-                posting_time=posting_time or datetime.utcnow(),
-                trust_score=None,  # Will be filled by analysis agents
-            )
+            query = text("""
+                INSERT INTO news_articles
+                (title, content, source, url, author, published_at, content_embedding, created_at)
+                VALUES
+                (:title, :content, :source, :url, :author, :published_at, :embedding, :created_at)
+                RETURNING id
+            """)
 
-            # Save to database
-            session = self.db_client.get_session()
-            try:
-                session.add(post)
-                session.commit()
-                logger.info(f"[OK] Ingested post: {post_id}")
-                return post_id
-            finally:
-                session.close()
+            result = self.db.execute(query, {
+                "title": title,
+                "content": content,
+                "source": source,
+                "url": url or "",
+                "author": author or "",
+                "published_at": published_at or datetime.utcnow(),
+                "embedding": embedding,
+                "created_at": datetime.utcnow(),
+            })
+
+            article_id = result.scalar()
+            self.db.commit()
+            logger.info(f"Ingested article: {title[:50]}... (ID: {article_id})")
+            return str(article_id)
 
         except Exception as e:
-            logger.error(f"Error ingesting post {post_id}: {e}")
-            raise
+            logger.error(f"Failed to ingest article: {e}")
+            self.db.rollback()
+            return None
 
-    def ingest_instagram_page(
+    def search_similar(
         self,
-        page_id: str,
-        username: str,
-        display_name: Optional[str] = None,
-        biography: Optional[str] = None,
-        followers: int = 0,
-        following: int = 0,
-        post_count: int = 0,
-    ) -> str:
-        """Ingest Instagram page into vector database.
-
-        Args:
-            page_id: Unique page ID
-            username: Page username
-            display_name: Display name
-            biography: Page biography
-            followers: Follower count
-            following: Following count
-            post_count: Number of posts
-
-        Returns:
-            Page ID if successful
-        """
-        try:
-            # Generate embedding
-            embedding = self.embedding_client.embed_instagram_page(
-                username=username,
-                biography=biography,
-            )
-
-            # Create page object
-            page = InstagramPage(
-                page_id=page_id,
-                username=username,
-                display_name=display_name,
-                biography=biography,
-                embedding=embedding,
-                followers=followers,
-                following=following,
-                post_count=post_count,
-            )
-
-            # Save to database
-            session = self.db_client.get_session()
-            try:
-                session.add(page)
-                session.commit()
-                logger.info(f"[OK] Ingested page: {username}")
-                return page_id
-            finally:
-                session.close()
-
-        except Exception as e:
-            logger.error(f"Error ingesting page {username}: {e}")
-            raise
-
-    def ingest_bias_pattern(
-        self,
-        pattern_id: str,
-        bias_category: str,
-        pattern_description: str,
-        indicators: List[str],
-        frequency_score: float = 0.5,
-        severity_score: float = 0.5,
-    ) -> str:
-        """Ingest bias pattern into vector database.
-
-        Args:
-            pattern_id: Unique pattern ID
-            bias_category: Type of bias
-            pattern_description: Description of pattern
-            indicators: List of indicators
-            frequency_score: How common (0-1)
-            severity_score: Severity (0-1)
-
-        Returns:
-            Pattern ID if successful
-        """
-        try:
-            # Generate embedding
-            embedding = self.embedding_client.embed_text(pattern_description)
-
-            # Create pattern object
-            pattern = BiasPattern(
-                pattern_id=pattern_id,
-                bias_category=bias_category,
-                pattern_description=pattern_description,
-                indicators=indicators,
-                frequency_score=frequency_score,
-                severity_score=severity_score,
-                pattern_embedding=embedding,
-            )
-
-            # Save to database
-            session = self.db_client.get_session()
-            try:
-                session.add(pattern)
-                session.commit()
-                logger.info(f"[OK] Ingested bias pattern: {pattern_id}")
-                return pattern_id
-            finally:
-                session.close()
-
-        except Exception as e:
-            logger.error(f"Error ingesting pattern {pattern_id}: {e}")
-            raise
-
-    # ==================== RETRIEVAL ====================
-
-    def search_similar_posts(
-        self,
-        query_embedding: List[float],
-        limit: int = 10,
-        similarity_threshold: float = 0.5,
+        query_text: str,
+        top_k: int = 5,
+        similarity_threshold: float = 0.5
     ) -> List[Dict[str, Any]]:
-        """Search for similar posts using vector similarity.
+        """Search for similar articles using semantic similarity.
 
         Args:
-            query_embedding: Query embedding vector
-            limit: Maximum results
-            similarity_threshold: Minimum similarity score
+            query_text: Query text
+            top_k: Number of results to return
+            similarity_threshold: Minimum similarity score (0-1)
 
         Returns:
-            List of similar posts with similarity scores
+            List of similar articles
         """
         try:
-            session = self.db_client.get_session()
-            try:
-                # Use pgvector similarity search
-                results = (
-                    session.query(
-                        InstagramPost,
-                        InstagramPost.embedding.cosine_distance(query_embedding).label(
-                            "distance"
-                        ),
-                    )
-                    .order_by("distance")
-                    .limit(limit)
-                    .all()
-                )
+            # Generate embedding for query
+            query_embedding = self.embedding_client.embed_text(query_text)
+            if not query_embedding:
+                logger.warning("Failed to generate embedding for query")
+                return []
 
-                # Convert distance to similarity (1 - distance)
-                similar_posts = []
-                for post, distance in results:
-                    similarity = 1 - distance
-                    if similarity >= similarity_threshold:
-                        similar_posts.append(
-                            {
-                                "post_id": post.post_id,
-                                "caption": post.caption,
-                                "page_username": post.page_username,
-                                "similarity": float(similarity),
-                                "trust_score": post.trust_score,
-                                "hashtags": post.hashtags,
-                            }
-                        )
+            # Search using pgvector cosine similarity
+            sql = text("""
+                SELECT
+                    id,
+                    title,
+                    content,
+                    source,
+                    url,
+                    author,
+                    published_at,
+                    (1 - (content_embedding <=> :embedding)) as similarity
+                FROM news_articles
+                WHERE (1 - (content_embedding <=> :embedding)) > :threshold
+                ORDER BY similarity DESC
+                LIMIT :limit
+            """)
 
-                logger.info(f"Found {len(similar_posts)} similar posts")
-                return similar_posts
-            finally:
-                session.close()
+            results = self.db.execute(sql, {
+                "embedding": query_embedding,
+                "threshold": similarity_threshold,
+                "limit": top_k
+            })
+
+            articles = []
+            for row in results:
+                articles.append({
+                    "id": row.id,
+                    "title": row.title,
+                    "content": row.content[:500],  # First 500 chars
+                    "source": row.source,
+                    "url": row.url,
+                    "author": row.author,
+                    "published_at": row.published_at.isoformat() if row.published_at else None,
+                    "similarity": float(row.similarity)
+                })
+
+            logger.info(f"Found {len(articles)} similar articles")
+            return articles
 
         except Exception as e:
-            logger.error(f"Error searching similar posts: {e}")
+            logger.error(f"Failed to search similar articles: {e}")
             return []
 
-    def search_similar_pages(
+    def get_context(
         self,
-        query_embedding: List[float],
-        limit: int = 10,
-        similarity_threshold: float = 0.5,
-    ) -> List[Dict[str, Any]]:
-        """Search for similar pages using vector similarity.
+        query_text: str,
+        num_results: int = 3
+    ) -> str:
+        """Get context for a query from similar articles.
 
         Args:
-            query_embedding: Query embedding vector
-            limit: Maximum results
-            similarity_threshold: Minimum similarity score
+            query_text: Query text
+            num_results: Number of articles to use for context
 
         Returns:
-            List of similar pages with similarity scores
+            Context string for LLM
         """
-        try:
-            session = self.db_client.get_session()
-            try:
-                # Use pgvector similarity search
-                results = (
-                    session.query(
-                        InstagramPage,
-                        InstagramPage.embedding.cosine_distance(query_embedding).label(
-                            "distance"
-                        ),
-                    )
-                    .order_by("distance")
-                    .limit(limit)
-                    .all()
-                )
+        similar = self.search_similar(query_text, top_k=num_results)
 
-                # Convert distance to similarity
-                similar_pages = []
-                for page, distance in results:
-                    similarity = 1 - distance
-                    if similarity >= similarity_threshold:
-                        similar_pages.append(
-                            {
-                                "page_id": page.page_id,
-                                "username": page.username,
-                                "followers": page.followers,
-                                "similarity": float(similarity),
-                                "average_trust_score": page.average_trust_score,
-                            }
-                        )
+        if not similar:
+            return "No relevant context found in database."
 
-                logger.info(f"Found {len(similar_pages)} similar pages")
-                return similar_pages
-            finally:
-                session.close()
+        context = "Relevant articles from database:\n\n"
+        for i, article in enumerate(similar, 1):
+            context += f"{i}. {article['title']}\n"
+            context += f"   Source: {article['source']}\n"
+            context += f"   Similarity: {article['similarity']:.2%}\n"
+            context += f"   Content: {article['content'][:300]}...\n\n"
 
-        except Exception as e:
-            logger.error(f"Error searching similar pages: {e}")
-            return []
+        return context
 
-    def search_bias_patterns(
-        self,
-        query_embedding: List[float],
-        limit: int = 10,
-        similarity_threshold: float = 0.5,
-    ) -> List[Dict[str, Any]]:
-        """Search for similar bias patterns.
-
-        Args:
-            query_embedding: Query embedding vector
-            limit: Maximum results
-            similarity_threshold: Minimum similarity score
-
-        Returns:
-            List of similar bias patterns
-        """
-        try:
-            session = self.db_client.get_session()
-            try:
-                # Use pgvector similarity search
-                results = (
-                    session.query(
-                        BiasPattern,
-                        BiasPattern.pattern_embedding.cosine_distance(
-                            query_embedding
-                        ).label("distance"),
-                    )
-                    .order_by("distance")
-                    .limit(limit)
-                    .all()
-                )
-
-                # Convert distance to similarity
-                similar_patterns = []
-                for pattern, distance in results:
-                    similarity = 1 - distance
-                    if similarity >= similarity_threshold:
-                        similar_patterns.append(
-                            {
-                                "pattern_id": pattern.pattern_id,
-                                "bias_category": pattern.bias_category,
-                                "indicators": pattern.indicators,
-                                "similarity": float(similarity),
-                                "severity_score": pattern.severity_score,
-                            }
-                        )
-
-                logger.info(f"Found {len(similar_patterns)} similar bias patterns")
-                return similar_patterns
-            finally:
-                session.close()
-
-        except Exception as e:
-            logger.error(f"Error searching bias patterns: {e}")
-            return []
-
-    # ==================== UTILITIES ====================
-
-    def get_post_count(self) -> int:
-        """Get total number of posts in RAG database."""
-        try:
-            session = self.db_client.get_session()
-            try:
-                count = session.query(func.count(InstagramPost.post_id)).scalar()
-                return count or 0
-            finally:
-                session.close()
-        except Exception as e:
-            logger.error(f"Error getting post count: {e}")
-            return 0
-
-    def get_page_count(self) -> int:
-        """Get total number of pages in RAG database."""
-        try:
-            session = self.db_client.get_session()
-            try:
-                count = session.query(func.count(InstagramPage.page_id)).scalar()
-                return count or 0
-            finally:
-                session.close()
-        except Exception as e:
-            logger.error(f"Error getting page count: {e}")
-            return 0
-
-    def get_rag_stats(self) -> Dict[str, Any]:
-        """Get RAG pipeline statistics."""
-        return {
-            "posts": self.get_post_count(),
-            "pages": self.get_page_count(),
-            "embedding_cache_size": self.embedding_client.cache_stats()["size"],
-        }
+    def close(self):
+        """Close database connection."""
+        if self.db:
+            self.db.close()
+            logger.info("RAG pipeline closed")
 
 
-# Global RAG pipeline instance
+# Global instance
 _pipeline: Optional[RAGPipeline] = None
 
 
 def get_rag_pipeline() -> RAGPipeline:
-    """Get or create global RAG pipeline."""
+    """Get or create RAG pipeline instance."""
     global _pipeline
     if _pipeline is None:
         _pipeline = RAGPipeline()

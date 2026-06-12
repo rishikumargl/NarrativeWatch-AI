@@ -1,54 +1,46 @@
-"""Vertex AI / Gemini LLM client wrapper."""
+"""Groq LLM client wrapper."""
 
 import os
 import logging
 from typing import Optional, List, Iterator
-import vertexai
-from vertexai.generative_models import GenerativeModel, SafetySetting
+from groq import Groq
 
 logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """Wrapper for Vertex AI Gemini LLM."""
+    """Wrapper for Groq LLM."""
 
     def __init__(
         self,
-        project_id: Optional[str] = None,
-        location: Optional[str] = None,
-        model_name: str = "gemini-2.5-pro",
+        api_key: Optional[str] = None,
+        model_name: str = "mixtral-8x7b-32768",
         temperature: float = 0.7,
         max_tokens: int = 2048,
     ):
-        """Initialize Vertex AI LLM client.
+        """Initialize Groq LLM client.
 
         Args:
-            project_id: Google Cloud project ID. If None, reads from env.
-            location: GCP region. Defaults to us-central1.
-            model_name: Gemini model name.
+            api_key: Groq API key. If None, reads from GROQ_API_KEY env.
+            model_name: Groq model name (default: mixtral-8x7b-32768).
             temperature: Model temperature (0-1).
             max_tokens: Max output tokens.
         """
-        self.project_id = project_id or os.getenv("VERTEX_AI_PROJECT_ID")
-        self.location = location or os.getenv("VERTEX_AI_LOCATION", "us-central1")
+        self.api_key = api_key or os.getenv("GROQ_API_KEY")
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        if not self.project_id:
-            raise ValueError("VERTEX_AI_PROJECT_ID environment variable not set")
+        if not self.api_key:
+            raise ValueError("GROQ_API_KEY environment variable not set")
 
-        # Initialize Vertex AI
+        # Initialize Groq client
         try:
-            vertexai.init(project=self.project_id, location=self.location)
-            logger.info(f"[OK] Vertex AI initialized: {self.project_id}/{self.location}")
+            self.client = Groq(api_key=self.api_key)
+            logger.info(f"[OK] Groq LLM client initialized: {self.model_name}")
         except Exception as e:
-            logger.error(f"Failed to initialize Vertex AI: {e}")
+            logger.error(f"Failed to initialize Groq: {e}")
             raise
-
-        # Initialize model
-        self.model = GenerativeModel(self.model_name)
-        logger.info(f"[OK] LLM client initialized: {self.model_name}")
 
     def generate(
         self,
@@ -57,7 +49,7 @@ class LLMClient:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> str:
-        """Generate text using Gemini.
+        """Generate text using Groq.
 
         Args:
             prompt: User prompt
@@ -69,24 +61,25 @@ class LLMClient:
             Generated text
         """
         try:
-            # Combine prompts
+            messages = []
+
+            # Add system message if provided
             if system_prompt:
-                full_prompt = f"{system_prompt}\n\n{prompt}"
-            else:
-                full_prompt = prompt
+                messages.append({"role": "system", "content": system_prompt})
+
+            # Add user message
+            messages.append({"role": "user", "content": prompt})
 
             # Generate
-            response = self.model.generate_content(
-                full_prompt,
-                generation_config={
-                    "temperature": temperature or self.temperature,
-                    "max_output_tokens": max_tokens or self.max_tokens,
-                    "top_p": 0.95,
-                    "top_k": 40,
-                },
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature or self.temperature,
+                max_tokens=max_tokens or self.max_tokens,
+                top_p=0.95,
             )
 
-            text = response.text
+            text = response.choices[0].message.content
             logger.info(f"[OK] Generated {len(text)} characters")
             return text
 
@@ -101,7 +94,7 @@ class LLMClient:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> Iterator[str]:
-        """Stream text generation using Gemini.
+        """Stream text generation using Groq.
 
         Args:
             prompt: User prompt
@@ -113,28 +106,27 @@ class LLMClient:
             Generated text chunks
         """
         try:
-            # Combine prompts
+            messages = []
+
             if system_prompt:
-                full_prompt = f"{system_prompt}\n\n{prompt}"
-            else:
-                full_prompt = prompt
+                messages.append({"role": "system", "content": system_prompt})
+
+            messages.append({"role": "user", "content": prompt})
 
             # Stream
-            response = self.model.generate_content(
-                full_prompt,
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature or self.temperature,
+                max_tokens=max_tokens or self.max_tokens,
+                top_p=0.95,
                 stream=True,
-                generation_config={
-                    "temperature": temperature or self.temperature,
-                    "max_output_tokens": max_tokens or self.max_tokens,
-                    "top_p": 0.95,
-                    "top_k": 40,
-                },
             )
 
             logger.info("[OK] Streaming generation started")
             for chunk in response:
-                if chunk.text:
-                    yield chunk.text
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
 
         except Exception as e:
             logger.error(f"Streaming error: {e}")

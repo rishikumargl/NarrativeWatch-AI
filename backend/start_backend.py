@@ -20,15 +20,15 @@ def main():
     # Load environment variables
     if env_file.exists():
         load_dotenv(env_file)
-        print(f"✓ Loaded configuration from: {env_file}")
+        print(f"[OK] Loaded configuration from: {env_file}")
     else:
-        print(f"✗ ERROR: .env file not found at {env_file}")
+        print(f"[ERROR] .env file not found at {env_file}")
         sys.exit(1)
 
     # Verify required variables
     print("\nConfiguration Status:")
     required_vars = {
-        "GOOGLE_CLOUD_PROJECT": "Google Cloud Project",
+        "GROQ_API_KEY": "Groq API Key",
         "NEWSAPI_KEY": "NewsAPI Key",
         "TAVILY_API_KEY": "Tavily API Key",
         "DATABASE_URL": "Database URL",
@@ -39,13 +39,13 @@ def main():
         value = os.getenv(var, "")
         if value:
             masked = f"{value[:10]}...{value[-5:]}" if len(value) > 15 else value
-            print(f"  ✓ {desc}: {masked}")
+            print(f"  [OK] {desc}: {masked}")
         else:
-            print(f"  ✗ {desc}: NOT SET")
+            print(f"  [SKIP] {desc}: NOT SET")
             all_set = False
 
     if not all_set:
-        print("\n⚠ Warning: Some environment variables are not set.")
+        print("\n[WARN] Some environment variables are not set.")
         print("The application may not work correctly.\n")
 
     print("\nStarting backend server...")

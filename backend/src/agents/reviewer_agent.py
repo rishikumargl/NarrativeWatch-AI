@@ -5,13 +5,18 @@ from langchain_core.tools import Tool
 
 
 class ReviewerAgent(BaseAgent):
-    """Quality assurance agent that reviews synthesis and provides feedback."""
+    """Quality assurance agent that reviews synthesis and provides feedback.
+
+    Uses llama-3.1-70b-versatile (best for critical analysis & complex reasoning)
+    instead of the default mixtral-8x7b for superior quality assurance.
+    """
 
     def __init__(self):
         config = AgentConfig(
             name="reviewer_agent",
             description="Review synthesis output for completeness, accuracy, relevance, and clarity. Provide actionable feedback for regeneration if needed.",
             temperature=0.3,
+            model_name="llama-3.1-70b-versatile"  # Better for critical analysis
         )
         super().__init__(config)
 

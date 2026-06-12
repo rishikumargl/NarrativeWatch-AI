@@ -26,15 +26,13 @@ class Config:
     API_RELOAD = os.getenv("API_RELOAD", "False").lower() == "true"
 
     # LLM Configuration
-    VERTEX_AI_PROJECT = os.getenv("VERTEX_AI_PROJECT", "narrativewatch-ai")
-    VERTEX_AI_LOCATION = os.getenv("VERTEX_AI_LOCATION", "us-central1")
-    LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-pro")
-    EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-005")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+    LLM_MODEL = os.getenv("LLM_MODEL", "mixtral-8x7b-32768")
+    EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 
     # API Keys
+    NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
     TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
-    INSTAGRAM_API_TOKEN = os.getenv("INSTAGRAM_API_TOKEN", "")
-    TWITTER_API_KEY = os.getenv("TWITTER_API_KEY", "")
 
     # Database
     DATABASE_URL = os.getenv(

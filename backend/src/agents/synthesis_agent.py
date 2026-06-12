@@ -5,13 +5,18 @@ from langchain_core.tools import Tool
 
 
 class SynthesisAgent(BaseAgent):
-    """Combines findings from all agents into coherent reports."""
+    """Combines findings from all agents into coherent reports.
+
+    Uses llama-3.1-70b-versatile (enhanced model) for better synthesis quality
+    and reasoning about complex multi-agent findings.
+    """
 
     def __init__(self):
         config = AgentConfig(
             name="synthesis_agent",
             description="Synthesize findings from all agents into a coherent report with trust score, risk flags, evidence ranking, and recommendations.",
             temperature=0.5,
+            model_name="llama-3.1-70b-versatile"  # Better for reasoning & synthesis
         )
         super().__init__(config)
 

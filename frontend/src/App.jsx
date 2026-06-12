@@ -3,9 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import AnalysisForm from './components/AnalysisForm'
 import ResultsDisplay from './components/ResultsDisplay'
 import Dashboard from './components/Dashboard'
-import Hero from './components/Hero'
-import StatsSection from './components/StatsSection'
-import Home from './pages/Home'
+import LandingPage from './pages/LandingPage'
 import './styles/App.css'
 import './styles/index.css'
 
@@ -71,7 +69,7 @@ function App() {
 
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analyze" element={
               <div className="analyze-container">

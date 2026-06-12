@@ -12,7 +12,7 @@ except ImportError:
     config = get_config()
 
 
-def setup_logging(name: str) -> logging.Logger:
+def setup_logger(name: str) -> logging.Logger:
     """Setup logging for a module."""
     logger = logging.getLogger(name)
     logger.setLevel(config.LOG_LEVEL)
@@ -48,4 +48,4 @@ def setup_logging(name: str) -> logging.Logger:
 
 
 # Create module logger
-logger = setup_logging(__name__)
+logger = setup_logger(__name__)

@@ -1,6 +1,6 @@
 """Embedding utilities for NarrativeWatch AI using Vertex AI."""
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 import numpy as np
 import logging
 
@@ -258,6 +258,87 @@ class EmbeddingUtils:
             return True
         except Exception:
             return False
+
+
+    def embed_instagram_post(self, caption: str, hashtags: List[str] = None, content_type: str = "text") -> Optional[List[float]]:
+        """
+        Generate embedding for Instagram post.
+
+        Args:
+            caption: Post caption text
+            hashtags: List of hashtags
+            content_type: Type of content (text, image, video)
+
+        Returns:
+            Embedding vector
+        """
+        if not caption:
+            return None
+
+        # Combine caption and hashtags for richer embedding
+        text = caption
+        if hashtags:
+            text += " " + " ".join(hashtags)
+
+        return self.generate_embedding(text)
+
+    def embed_instagram_page(self, username: str, biography: str = None) -> Optional[List[float]]:
+        """
+        Generate embedding for Instagram page.
+
+        Args:
+            username: Page username
+            biography: Page biography/description
+
+        Returns:
+            Embedding vector
+        """
+        text = username
+        if biography:
+            text += " " + biography
+
+        return self.generate_embedding(text)
+
+    def embed_text(self, text: str) -> Optional[List[float]]:
+        """
+        Generate embedding for arbitrary text.
+
+        Args:
+            text: Input text
+
+        Returns:
+            Embedding vector
+        """
+        return self.generate_embedding(text)
+
+    def similarity(self, vec1: List[float], vec2: List[float]) -> float:
+        """
+        Calculate similarity between two vectors. Alias for cosine_similarity.
+
+        Args:
+            vec1: First vector
+            vec2: Second vector
+
+        Returns:
+            Similarity score (0-1)
+        """
+        return self.cosine_similarity(vec1, vec2)
+
+    def cache_stats(self) -> Dict[str, int]:
+        """
+        Get embedding cache statistics.
+
+        Returns:
+            Cache statistics dictionary
+        """
+        # Placeholder for cache implementation
+        # Can be extended to track actual cache hits/misses
+        return {
+            "cache_size": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "cache_hit_rate": 0.0
+        }
 
 
 # Singleton instance and factory function

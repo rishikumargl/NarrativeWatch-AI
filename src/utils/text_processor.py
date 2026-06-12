@@ -1,7 +1,7 @@
 """Text processing utilities for NarrativeWatch AI."""
 
 import re
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
@@ -141,7 +141,7 @@ class TextProcessor:
             'unique_words': len(set(tokens)),
         }
 
-    def extract_patterns(self, text: str) -> Dict[str, any]:
+    def extract_patterns(self, text: str) -> Dict[str, Any]:
         """Extract various text patterns."""
         return {
             'hashtags': self.extract_hashtags(text),

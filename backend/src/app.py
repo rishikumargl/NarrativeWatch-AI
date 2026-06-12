@@ -7,14 +7,14 @@ from fastapi.responses import JSONResponse
 from src.config import settings
 from src.logger import setup_logger
 from src.models.request import (
-    AnalyzePageRequest,
-    AnalyzePostRequest,
+    AnalyzeUserRequest,
+    AnalyzeTweetRequest,
     SimilarSearchRequest,
 )
 from src.models.response import (
     AnalysisResponse,
-    PageAnalysisResponse,
-    PostAnalysisResponse,
+    UserAnalysisResponse,
+    TweetAnalysisResponse,
     ErrorResponse,
     HealthCheckResponse,
     WorkflowStatusResponse,
@@ -96,83 +96,83 @@ async def health_check():
     )
 
 
-@app.post("/analyze/page", response_model=PageAnalysisResponse)
-async def analyze_page(request: AnalyzePageRequest, background_tasks: BackgroundTasks):
+@app.post("/analyze/user", response_model=UserAnalysisResponse)
+async def analyze_user(request: AnalyzeUserRequest, background_tasks: BackgroundTasks):
     """
-    Analyze Instagram page.
+    Analyze Twitter user.
 
     Args:
-        request: Page analysis request
+        request: User analysis request
         background_tasks: Background task queue
 
     Returns:
-        Page analysis result
+        User analysis result
     """
     try:
         analysis_id = str(uuid.uuid4())
-        logger.info(f"Starting page analysis: {request.username}")
+        logger.info(f"Starting user analysis: {request.username}")
 
         # Create workflow
         workflow_id = f"wf_{analysis_id[:8]}"
 
         # Run analysis in background
         background_tasks.add_task(
-            _run_page_analysis, workflow_id, analysis_id, request
+            _run_user_analysis, workflow_id, analysis_id, request
         )
 
-        return PageAnalysisResponse(
+        return UserAnalysisResponse(
             analysis_id=analysis_id,
             status="processing",
             trust_score=0,
             risk_level="unknown",
             risk_flags=[],
             summary="Analysis in progress",
-            page_username=request.username,
-            posts_analyzed=request.num_posts,
+            user_username=request.username,
+            tweets_analyzed=request.num_tweets,
         )
 
     except Exception as e:
-        logger.error(f"Page analysis error: {e}")
+        logger.error(f"User analysis error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/analyze/post", response_model=PostAnalysisResponse)
-async def analyze_post(request: AnalyzePostRequest, background_tasks: BackgroundTasks):
+@app.post("/analyze/tweet", response_model=TweetAnalysisResponse)
+async def analyze_tweet(request: AnalyzeTweetRequest, background_tasks: BackgroundTasks):
     """
-    Analyze single Instagram post.
+    Analyze single Twitter tweet.
 
     Args:
-        request: Post analysis request
+        request: Tweet analysis request
         background_tasks: Background task queue
 
     Returns:
-        Post analysis result
+        Tweet analysis result
     """
     try:
         analysis_id = str(uuid.uuid4())
-        logger.info(f"Starting post analysis: {request.post_url}")
+        logger.info(f"Starting tweet analysis: {request.tweet_id}")
 
         workflow_id = f"wf_{analysis_id[:8]}"
 
         # Run analysis in background
         background_tasks.add_task(
-            _run_post_analysis, workflow_id, analysis_id, request
+            _run_tweet_analysis, workflow_id, analysis_id, request
         )
 
-        return PostAnalysisResponse(
+        return TweetAnalysisResponse(
             analysis_id=analysis_id,
             status="processing",
             trust_score=0,
             risk_level="unknown",
             risk_flags=[],
             summary="Analysis in progress",
-            post_id="pending",
-            page_username="pending",
+            tweet_id="pending",
+            user_username="pending",
             content_type="unknown",
         )
 
     except Exception as e:
-        logger.error(f"Post analysis error: {e}")
+        logger.error(f"Tweet analysis error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -268,11 +268,11 @@ async def get_workflow_status(workflow_id: str):
 
 
 # Background task functions
-def _run_page_analysis(workflow_id: str, analysis_id: str, request: AnalyzePageRequest):
-    """Run page analysis in background (sync wrapper)."""
+def _run_user_analysis(workflow_id: str, analysis_id: str, request: AnalyzeUserRequest):
+    """Run user analysis in background (sync wrapper)."""
     try:
         import asyncio
-        logger.info(f"Running page analysis for {request.username}")
+        logger.info(f"Running user analysis for {request.username}")
 
         # Execute workflow - proper async handling
         try:
@@ -283,34 +283,34 @@ def _run_page_analysis(workflow_id: str, analysis_id: str, request: AnalyzePageR
 
         state = loop.run_until_complete(
             orchestration_engine.execute_workflow(
-                workflow_id, f"Analyze page: {request.username}", AGENTS
+                workflow_id, f"Analyze user: {request.username}", AGENTS
             )
         )
 
         # Store result
         final_state = state_manager.get_workflow_state(workflow_id)
-        WORKFLOW_RESULTS[analysis_id] = PageAnalysisResponse(
+        WORKFLOW_RESULTS[analysis_id] = UserAnalysisResponse(
             analysis_id=analysis_id,
             status="completed",
             trust_score=final_state.final_result.get("trust_score", 50),
             risk_level=final_state.final_result.get("risk_level", "medium"),
             risk_flags=[],
             summary=final_state.final_result.get("summary", "Analysis complete"),
-            page_username=request.username,
-            posts_analyzed=request.num_posts,
+            user_username=request.username,
+            tweets_analyzed=request.num_tweets,
         )
 
-        logger.info(f"Page analysis completed: {analysis_id}")
+        logger.info(f"User analysis completed: {analysis_id}")
 
     except Exception as e:
         logger.error(f"Background analysis error: {e}")
 
 
-def _run_post_analysis(workflow_id: str, analysis_id: str, request: AnalyzePostRequest):
-    """Run post analysis in background (sync wrapper)."""
+def _run_tweet_analysis(workflow_id: str, analysis_id: str, request: AnalyzeTweetRequest):
+    """Run tweet analysis in background (sync wrapper)."""
     try:
         import asyncio
-        logger.info(f"Running post analysis for {request.post_url}")
+        logger.info(f"Running tweet analysis for {request.tweet_id}")
 
         # Execute workflow - proper async handling
         try:
@@ -321,25 +321,25 @@ def _run_post_analysis(workflow_id: str, analysis_id: str, request: AnalyzePostR
 
         state = loop.run_until_complete(
             orchestration_engine.execute_workflow(
-                workflow_id, f"Analyze post: {request.post_url}", AGENTS
+                workflow_id, f"Analyze tweet: {request.tweet_id}", AGENTS
             )
         )
 
         # Store result
         final_state = state_manager.get_workflow_state(workflow_id)
-        WORKFLOW_RESULTS[analysis_id] = PostAnalysisResponse(
+        WORKFLOW_RESULTS[analysis_id] = TweetAnalysisResponse(
             analysis_id=analysis_id,
             status="completed",
             trust_score=final_state.final_result.get("trust_score", 50),
             risk_level=final_state.final_result.get("risk_level", "medium"),
             risk_flags=[],
             summary=final_state.final_result.get("summary", "Analysis complete"),
-            post_id=request.post_url.split("/")[-2],
-            page_username="unknown",
-            content_type="post",
+            tweet_id=request.tweet_id,
+            user_username="unknown",
+            content_type="tweet",
         )
 
-        logger.info(f"Post analysis completed: {analysis_id}")
+        logger.info(f"Tweet analysis completed: {analysis_id}")
 
     except Exception as e:
         logger.error(f"Background analysis error: {e}")

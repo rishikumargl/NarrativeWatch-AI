@@ -4,15 +4,15 @@ from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional, List
 
 
-class AnalyzePageRequest(BaseModel):
-    """Request model for analyzing an Instagram page."""
+class AnalyzeUserRequest(BaseModel):
+    """Request model for analyzing a Twitter user."""
 
-    username: str = Field(..., description="Instagram page username")
-    include_posts: bool = Field(
-        default=True, description="Whether to analyze posts from the page"
+    username: str = Field(..., description="Twitter username (handle without @)")
+    include_tweets: bool = Field(
+        default=True, description="Whether to analyze tweets from the user"
     )
-    num_posts: int = Field(
-        default=20, ge=1, le=100, description="Number of recent posts to analyze"
+    num_tweets: int = Field(
+        default=20, ge=1, le=100, description="Number of recent tweets to analyze"
     )
     include_campaigns: bool = Field(
         default=True, description="Whether to detect coordinated campaigns"
@@ -21,29 +21,29 @@ class AnalyzePageRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "username": "example_page",
-                "include_posts": True,
-                "num_posts": 20,
+                "username": "example_user",
+                "include_tweets": True,
+                "num_tweets": 20,
                 "include_campaigns": True,
             }
         }
 
 
-class AnalyzePostRequest(BaseModel):
-    """Request model for analyzing a single Instagram post."""
+class AnalyzeTweetRequest(BaseModel):
+    """Request model for analyzing a single Twitter tweet."""
 
-    post_url: str = Field(..., description="Instagram post URL")
+    tweet_id: str = Field(..., description="Twitter tweet ID")
     include_context: bool = Field(
-        default=True, description="Include context from page history"
+        default=True, description="Include context from user history"
     )
     check_campaigns: bool = Field(
-        default=True, description="Check if post is part of a campaign"
+        default=True, description="Check if tweet is part of a campaign"
     )
 
     class Config:
         json_schema_extra = {
             "example": {
-                "post_url": "https://instagram.com/p/ABC123DEF456/",
+                "tweet_id": "1234567890123456789",
                 "include_context": True,
                 "check_campaigns": True,
             }
@@ -70,17 +70,17 @@ class SimilarSearchRequest(BaseModel):
 
 
 class BulkAnalysisRequest(BaseModel):
-    """Request model for analyzing multiple pages."""
+    """Request model for analyzing multiple users."""
 
-    pages: List[str] = Field(..., description="List of Instagram usernames")
+    users: List[str] = Field(..., description="List of Twitter usernames")
     detect_coordination: bool = Field(
-        default=True, description="Detect coordination between pages"
+        default=True, description="Detect coordination between users"
     )
 
     class Config:
         json_schema_extra = {
             "example": {
-                "pages": ["page1", "page2", "page3"],
+                "users": ["user1", "user2", "user3"],
                 "detect_coordination": True,
             }
         }

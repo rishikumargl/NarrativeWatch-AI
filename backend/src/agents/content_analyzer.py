@@ -11,49 +11,51 @@ logger = logging.getLogger(__name__)
 
 
 class ContentAnalyzerAgent(BaseAgent):
-    """Analyze Instagram post/page content and extract features."""
+    """Analyze Twitter tweet content and extract features."""
 
     def __init__(self):
         """Initialize Content Analyzer Agent."""
         super().__init__(
             name="Content Analyzer",
-            description="Extract and classify post/page content for emotional language, "
-                       "narrative themes, hashtag patterns, and engagement metrics"
+            description="Extract and classify tweet content for emotional language, "
+                       "narrative themes, hashtag patterns, mention patterns, and engagement metrics"
         )
         self.text_processor = TextProcessor()
 
-    def run(self, instagram_data: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, tweet_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Analyze Instagram post/page content.
+        Analyze Twitter tweet content.
 
         Args:
-            instagram_data: Dict with caption, hashtags, comments, etc.
+            tweet_data: Dict with text, hashtags, mentions, comments, etc.
 
         Returns:
             Dict with analysis results
         """
         try:
-            if not self.validate_input(instagram_data):
+            if not self.validate_input(tweet_data):
                 return {"status": "error", "message": "Invalid input data"}
 
-            caption = instagram_data.get("caption", "")
-            hashtags = instagram_data.get("hashtags", [])
-            comments = instagram_data.get("comments", [])
-            posting_time = instagram_data.get("posting_time")
-            engagement_data = instagram_data.get("engagement", {})
+            text = tweet_data.get("text", "")
+            hashtags = tweet_data.get("hashtags", [])
+            mentions = tweet_data.get("mentions", [])
+            replies = tweet_data.get("replies", [])
+            posting_time = tweet_data.get("created_at")
+            engagement_data = tweet_data.get("engagement", {})
 
             analysis = {
-                "emotional_language": self._analyze_emotional_language(caption, comments),
-                "narrative_themes": self._analyze_narrative_themes(caption, comments),
+                "emotional_language": self._analyze_emotional_language(text, replies),
+                "narrative_themes": self._analyze_narrative_themes(text, replies),
                 "hashtag_patterns": self._analyze_hashtag_patterns(hashtags),
+                "mention_patterns": self._analyze_mention_patterns(mentions),
                 "posting_pattern": self._analyze_posting_pattern(posting_time),
                 "engagement_metrics": self._analyze_engagement_metrics(engagement_data),
-                "text_patterns": self._analyze_text_patterns(caption),
+                "text_patterns": self._analyze_text_patterns(text),
             }
 
             return {
                 "status": "success",
-                "agent": "Content Analyzer",
+                "agent": "Twitter Content Analyzer",
                 "analysis": analysis,
                 "timestamp": datetime.utcnow().isoformat(),
             }
@@ -70,9 +72,9 @@ class ContentAnalyzerAgent(BaseAgent):
             return False
         return True
 
-    def _analyze_emotional_language(self, caption: str, comments: List[str]) -> Dict[str, Any]:
-        """Analyze emotional language in content."""
-        all_text = caption + " " + " ".join(comments)
+    def _analyze_emotional_language(self, text: str, replies: List[str]) -> Dict[str, Any]:
+        """Analyze emotional language in tweet."""
+        all_text = text + " " + " ".join(replies)
 
         sentiment = self.text_processor.calculate_sentiment(all_text)
         subjectivity = self.text_processor.calculate_subjectivity(all_text)
@@ -96,9 +98,9 @@ class ContentAnalyzerAgent(BaseAgent):
             "overall_tone": self._determine_tone(sentiment, emotional_intensity),
         }
 
-    def _analyze_narrative_themes(self, caption: str, comments: List[str]) -> List[str]:
-        """Identify narrative themes in content."""
-        all_text = (caption + " " + " ".join(comments)).lower()
+    def _analyze_narrative_themes(self, text: str, replies: List[str]) -> List[str]:
+        """Identify narrative themes in tweet."""
+        all_text = (text + " " + " ".join(replies)).lower()
 
         themes = []
         theme_patterns = {
@@ -166,6 +168,35 @@ class ContentAnalyzerAgent(BaseAgent):
             "hashtag_categories": self._categorize_hashtags(hashtags),
         }
 
+    def _analyze_mention_patterns(self, mentions: List[str]) -> Dict[str, Any]:
+        """Analyze mention patterns and influencer targeting."""
+        if not mentions:
+            return {
+                "total_mentions": 0,
+                "unique_mentions": 0,
+                "mention_frequency": {},
+                "mention_types": {},
+            }
+
+        from collections import Counter
+        mention_counts = Counter(mentions)
+
+        # Categorize mentions
+        mention_types = {
+            "official": [],  # Official accounts (verified)
+            "influencer": [],  # Influential accounts
+            "peer": [],  # Regular user accounts
+            "bot": [],  # Automated accounts
+        }
+
+        return {
+            "total_mentions": len(mentions),
+            "unique_mentions": len(set(mentions)),
+            "mention_frequency": dict(mention_counts.most_common(10)),
+            "mention_types": mention_types,
+            "network_effect": len(set(mentions)) / max(1, len(mentions)),
+        }
+
     def _categorize_hashtags(self, hashtags: List[str]) -> Dict[str, List[str]]:
         """Categorize hashtags by type."""
         categories = {
@@ -229,15 +260,15 @@ class ContentAnalyzerAgent(BaseAgent):
             "engagement_quality": self._assess_engagement_quality(engagement_data),
         }
 
-    def _analyze_text_patterns(self, caption: str) -> Dict[str, Any]:
+    def _analyze_text_patterns(self, text: str) -> Dict[str, Any]:
         """Analyze text patterns and features."""
-        patterns = self.text_processor.extract_patterns(caption)
+        patterns = self.text_processor.extract_patterns(text)
 
         return {
             "language_features": patterns.get("language_features", {}),
             "named_entities": patterns.get("named_entities", {}),
-            "readability": self.text_processor.analyze_readability(caption),
-            "word_frequency": self.text_processor.get_word_frequency(caption, top_n=5),
+            "readability": self.text_processor.analyze_readability(text),
+            "word_frequency": self.text_processor.get_word_frequency(text, top_n=5),
         }
 
     def _determine_tone(self, sentiment: float, emotional_intensity: Dict[str, float]) -> str:

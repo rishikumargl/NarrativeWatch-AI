@@ -36,24 +36,29 @@ class AnalysisResponse(BaseModel):
     recommendations: List[str] = Field(default_factory=list)
 
 
-class PageAnalysisResponse(AnalysisResponse):
-    """Response for page analysis."""
+class UserAnalysisResponse(AnalysisResponse):
+    """Response for Twitter user analysis."""
 
-    page_username: str = Field(..., description="Instagram page username")
+    user_username: str = Field(..., description="Twitter user handle")
     follower_count: Optional[int] = Field(default=None)
-    posts_analyzed: int = Field(..., description="Number of posts analyzed")
+    tweets_analyzed: int = Field(..., description="Number of tweets analyzed")
     detected_patterns: Dict[str, Any] = Field(default_factory=dict)
     campaign_involvement: Optional[Dict[str, Any]] = Field(default=None)
 
 
-class PostAnalysisResponse(AnalysisResponse):
-    """Response for single post analysis."""
+class TweetAnalysisResponse(AnalysisResponse):
+    """Response for single tweet analysis."""
 
-    post_id: str = Field(..., description="Instagram post ID")
-    page_username: str = Field(..., description="Page that posted this")
+    tweet_id: str = Field(..., description="Twitter tweet ID")
+    user_username: str = Field(..., description="User that posted this")
     content_type: str = Field(..., description="Type of content")
     engagement_metrics: Dict[str, Any] = Field(default_factory=dict)
     suspected_campaign: Optional[str] = Field(default=None)
+
+
+# Keep aliases for backwards compatibility
+PageAnalysisResponse = UserAnalysisResponse
+PostAnalysisResponse = TweetAnalysisResponse
 
 
 class CampaignAnalysisResponse(BaseModel):

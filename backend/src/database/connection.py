@@ -2,13 +2,13 @@
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, Session
-from src.config import settings
+from src.config import config
 from src.logger import logger
 
 # Create engine
 engine = create_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
+    config.DATABASE_URL,
+    echo=config.DEBUG,
     pool_pre_ping=True
 )
 

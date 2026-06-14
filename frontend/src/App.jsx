@@ -1,18 +1,25 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import HomePage from './pages/HomePage'
-import AnalyzePage from './pages/AnalyzePage'
-import ResultsPage from './pages/ResultsPage'
-import Nav from './components/Nav'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import ProjectsPage from './pages/ProjectsPage';
+import AnalyzePage from './pages/AnalyzePage';
+import ResultsPage from './pages/ResultsPage';
+import HistoryPage from './pages/HistoryPage';
 
-export default function App() {
+function App() {
   return (
-    <BrowserRouter>
-      <Nav />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/analyze" element={<AnalyzePage />} />
-        <Route path="/results/:id" element={<ResultsPage />} />
-      </Routes>
-    </BrowserRouter>
-  )
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/analysis/:id" element={<AnalyzePage />} />
+          <Route path="/results/:id" element={<ResultsPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
+
+export default App;

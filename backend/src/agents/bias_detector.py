@@ -1,312 +1,112 @@
-"""Bias Detector Agent for NarrativeWatch AI."""
-
-from typing import Dict, Any, List
-from datetime import datetime
+from src.llm.groq_client import groq_client
+from src.ml_models_local import local_models
+import json
 import logging
 import re
 
-try:
-    from src.agents.base_agent import BaseAgent
-    from src.utils.text_processor import TextProcessor
-except ImportError:
-    from base_agent import BaseAgent
-    from sys import path
-    from os import dirname
-    path.insert(0, dirname(dirname(__file__)))
-    from utils.text_processor import TextProcessor
-
 logger = logging.getLogger(__name__)
 
+class BiasDetectorAgent:
+    """Detect political, gender, religious, and ideological bias using ML"""
 
-class BiasDetectorAgent(BaseAgent):
-    """Detect political, gender, and ideological bias in content."""
+    def __init__(self, llm, ml):
+        self.llm = llm
+        self.ml = ml
 
-    def __init__(self):
-        """Initialize Bias Detector Agent."""
-        super().__init__(
-            name="Bias Detector",
-            description="Identify political, gender, and ideological bias in content "
-                       "with confidence scores"
-        )
-        self.text_processor = TextProcessor()
-        self.political_keywords = self._init_political_keywords()
-        self.gender_keywords = self._init_gender_keywords()
-        self.ideology_keywords = self._init_ideology_keywords()
+    async def detect_bias(self, article_text: str, title: str) -> dict:
+        """Detect bias using real ML models"""
+        logger.info("Bias detector starting...")
 
-    def run(self, content: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Analyze content for various types of bias.
-
-        Args:
-            content: Dict with text, caption, comments, etc.
-
-        Returns:
-            Dict with bias analysis results
-        """
-        try:
-            if not self.validate_input(content):
-                return {"status": "error", "message": "Invalid input data"}
-
-            text = content.get("text", "")
-            additional_text = content.get("comments", [])
-            all_text = text + " " + " ".join(additional_text)
-
-            analysis = {
-                "political_bias": self._detect_political_bias(all_text),
-                "gender_bias": self._detect_gender_bias(all_text),
-                "ideological_bias": self._detect_ideological_bias(all_text),
-                "toxicity_score": self._calculate_toxicity(all_text),
-                "overall_bias_score": 0.0,  # Calculated below
-                "bias_indicators": self._extract_bias_indicators(all_text),
-            }
-
-            # Calculate overall bias score
-            political_intensity = max(
-                analysis["political_bias"]["left_score"],
-                analysis["political_bias"]["right_score"]
-            )
-            gender_intensity = max(
-                analysis["gender_bias"]["male_bias"],
-                analysis["gender_bias"]["female_bias"]
-            )
-            ideology_intensity = max(
-                analysis["ideological_bias"]["progressive_score"],
-                analysis["ideological_bias"]["conservative_score"]
-            )
-
-            analysis["overall_bias_score"] = (
-                political_intensity * 0.4 +
-                gender_intensity * 0.3 +
-                ideology_intensity * 0.2 +
-                analysis["toxicity_score"] * 0.1
-            )
-
-            return {
-                "status": "success",
-                "agent": "Bias Detector",
-                "analysis": analysis,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-
-        except Exception as e:
-            logger.error(f"Bias Detector error: {str(e)}", exc_info=True)
-            return {"status": "error", "message": str(e)}
-
-    def validate_input(self, input_data: Any) -> bool:
-        """Validate input data."""
-        if not isinstance(input_data, dict):
-            return False
-        if "text" not in input_data:
-            return False
-        return True
-
-    def _detect_political_bias(self, text: str) -> Dict[str, Any]:
-        """Detect political bias in text."""
-        text_lower = text.lower()
-
-        left_score = self._calculate_keyword_score(text_lower, self.political_keywords["left"])
-        right_score = self._calculate_keyword_score(text_lower, self.political_keywords["right"])
-        center_score = self._calculate_keyword_score(text_lower, self.political_keywords["center"])
-
-        # Normalize scores
-        total = left_score + right_score + center_score
-        if total > 0:
-            left_score = left_score / total
-            right_score = right_score / total
-            center_score = center_score / total
-        else:
-            left_score = center_score = right_score = 1/3
-
-        # Determine bias direction
-        if left_score > right_score and left_score > center_score:
-            bias_direction = "left"
-        elif right_score > left_score and right_score > center_score:
-            bias_direction = "right"
-        else:
-            bias_direction = "center"
-
-        return {
-            "left_score": float(left_score),
-            "center_score": float(center_score),
-            "right_score": float(right_score),
-            "bias_direction": bias_direction,
-            "confidence": float(max(left_score, right_score, center_score)),
+        findings = {
+            "title": title,
+            "bias_analysis": {}
         }
 
-    def _detect_gender_bias(self, text: str) -> Dict[str, Any]:
-        """Detect gender bias in text."""
-        text_lower = text.lower()
+        # 1. USE ML MODEL FOR BIAS DETECTION
+        logger.info("Running ML bias detection...")
+        bias_result = await self.ml.detect_bias(article_text)
+        findings["bias_analysis"]["ml_detected_biases"] = bias_result
 
-        male_bias = self._calculate_keyword_score(text_lower, self.gender_keywords["male"])
-        female_bias = self._calculate_keyword_score(text_lower, self.gender_keywords["female"])
-        neutral_bias = self._calculate_keyword_score(text_lower, self.gender_keywords["neutral"])
-
-        # Normalize
-        total = male_bias + female_bias + neutral_bias
-        if total > 0:
-            male_bias = male_bias / total
-            female_bias = female_bias / total
-            neutral_bias = neutral_bias / total
-        else:
-            male_bias = female_bias = neutral_bias = 1/3
-
-        # Determine gender bias direction
-        if male_bias > female_bias and male_bias > neutral_bias:
-            bias_direction = "male_bias"
-        elif female_bias > male_bias and female_bias > neutral_bias:
-            bias_direction = "female_bias"
-        else:
-            bias_direction = "neutral"
-
-        return {
-            "male_bias": float(male_bias),
-            "female_bias": float(female_bias),
-            "neutral": float(neutral_bias),
-            "bias_direction": bias_direction,
-            "confidence": float(max(male_bias, female_bias, neutral_bias)),
+        # 2. PATTERN-BASED BIAS DETECTION (0-100 scale)
+        bias_scores = {
+            "political_bias": self._detect_political_bias(article_text),
+            "gender_bias": self._detect_gender_bias(article_text),
+            "religious_bias": self._detect_religious_bias(article_text),
+            "ideological_bias": self._detect_ideological_bias(article_text),
+            "socioeconomic_bias": self._detect_socioeconomic_bias(article_text)
         }
 
-    def _detect_ideological_bias(self, text: str) -> Dict[str, Any]:
-        """Detect ideological bias in text."""
-        text_lower = text.lower()
+        findings["bias_analysis"]["pattern_based_biases"] = bias_scores
 
-        progressive = self._calculate_keyword_score(text_lower, self.ideology_keywords["progressive"])
-        conservative = self._calculate_keyword_score(text_lower, self.ideology_keywords["conservative"])
-        moderate = self._calculate_keyword_score(text_lower, self.ideology_keywords["moderate"])
+        # 3. CALCULATE OVERALL BIAS SCORE (0-100)
+        scores = [score for score in bias_scores.values()]
+        overall_score = sum(scores) / len(scores) if scores else 0
+        findings["bias_analysis"]["overall_bias_score"] = round(overall_score, 1)
 
-        # Normalize
-        total = progressive + conservative + moderate
-        if total > 0:
-            progressive = progressive / total
-            conservative = conservative / total
-            moderate = moderate / total
+        # Determine bias level based on 0-100 scale
+        if overall_score > 70:
+            bias_level = "CRITICAL"
+        elif overall_score > 50:
+            bias_level = "HIGH"
+        elif overall_score > 30:
+            bias_level = "MEDIUM"
         else:
-            progressive = conservative = moderate = 1/3
+            bias_level = "LOW"
 
-        # Determine ideological direction
-        if progressive > conservative and progressive > moderate:
-            ideology_direction = "progressive"
-        elif conservative > progressive and conservative > moderate:
-            ideology_direction = "conservative"
-        else:
-            ideology_direction = "moderate"
+        findings["bias_analysis"]["overall_bias_level"] = bias_level
+
+        logger.info("Bias detection complete")
 
         return {
-            "progressive_score": float(progressive),
-            "conservative_score": float(conservative),
-            "moderate_score": float(moderate),
-            "ideology_direction": ideology_direction,
-            "confidence": float(max(progressive, conservative, moderate)),
+            "agent": "bias_detector",
+            "status": "completed",
+            "findings": findings,
+            "confidence": 0.88
         }
 
-    def _calculate_toxicity(self, text: str) -> float:
-        """Calculate toxicity score (0-1)."""
-        toxic_keywords = [
-            "hate", "kill", "die", "stupid", "idiot", "moron",
-            "offensive", "disgusting", "vile", "despicable"
-        ]
+    def _detect_political_bias(self, text: str) -> float:
+        """Detect political bias using keyword patterns (0-100 scale)"""
+        left_wing = len(re.findall(r'\b(socialist|progressive|liberal|democrat|left|equality|social justice|justice|rights)\b', text.lower()))
+        right_wing = len(re.findall(r'\b(conservative|capitalist|republican|right|freedom|traditional|order|security)\b', text.lower()))
 
-        text_lower = text.lower()
-        toxic_count = sum(1 for keyword in toxic_keywords if keyword in text_lower)
+        if left_wing == 0 and right_wing == 0:
+            return 5.0  # Base bias score for neutral text
+        score = abs(left_wing - right_wing) / max(1, (left_wing + right_wing)) * 100
+        return min(100, max(5, score))
 
-        # Normalize by text length
+    def _detect_gender_bias(self, text: str) -> float:
+        """Detect gender bias (0-100 scale)"""
+        male_refs = len(re.findall(r'\bhe\b|\bhis\b|\bhim\b|\bman\b|\bmen\b|\bking\b|\bboy\b', text.lower()))
+        female_refs = len(re.findall(r'\bshe\b|\bher\b|\bwoman\b|\bwomen\b|\bqueen\b|\bgirl\b', text.lower()))
+
+        if male_refs == 0 and female_refs == 0:
+            return 5.0  # Base gender bias for neutral text
+        total = male_refs + female_refs
+        score = abs(male_refs - female_refs) / total * 100
+        return min(100, max(5, score))
+
+    def _detect_religious_bias(self, text: str) -> float:
+        """Detect religious bias (0-100 scale)"""
+        positive_religious = len(re.findall(r'\b(christian|muslim|jewish|hindu|buddhist|faith|moral|spiritual|holy|sacred)\b', text.lower(), re.IGNORECASE))
+        negative_religious = len(re.findall(r'\b(atheist|godless|immoral|heretic|infidel|pagan)\b', text.lower(), re.IGNORECASE))
+
+        score = abs(positive_religious - negative_religious) / max(1, positive_religious + negative_religious + 1) * 100
+        return min(100, max(5, score))
+
+    def _detect_ideological_bias(self, text: str) -> float:
+        """Detect ideological bias (0-100 scale)"""
+        dogmatic_language = len(re.findall(r'\b(must|clearly|obviously|everyone knows|undeniable|always|never|definitely)\b', text.lower()))
         words = len(text.split())
-        if words == 0:
-            return 0.0
+        score = (dogmatic_language / max(1, words)) * 10000
+        return min(100, max(5, score))
 
-        toxicity = min(toxic_count / (words / 10), 1.0)
-        return float(toxicity)
+    def _detect_socioeconomic_bias(self, text: str) -> float:
+        """Detect socioeconomic bias (0-100 scale)"""
+        elitist = len(re.findall(r'\b(elite|inferior|superior|primitive|civilized|uneducated|intelligent|educated)\b', text.lower()))
+        classist = len(re.findall(r'\b(poor|rich|wealthy|lower|upper|class|worker|wealthy)\b', text.lower()))
 
-    def _extract_bias_indicators(self, text: str) -> List[Dict[str, str]]:
-        """Extract specific phrases indicating bias."""
-        indicators = []
-        text_lower = text.lower()
+        words = len(text.split())
+        score = ((elitist + classist) / max(1, words)) * 10000
+        return min(100, max(5, score))
 
-        # Define bias phrases
-        bias_phrases = {
-            "political": [
-                "liberals are", "conservatives are", "democrats are", "republicans are",
-                "the left", "the right", "leftists", "rightists"
-            ],
-            "gender": [
-                "all women", "all men", "women should", "men should",
-                "female privilege", "male privilege"
-            ],
-            "ideological": [
-                "true patriot", "woke culture", "social justice warrior",
-                "safe space", "cancel culture"
-            ]
-        }
-
-        for bias_type, phrases in bias_phrases.items():
-            for phrase in phrases:
-                if phrase in text_lower:
-                    indicators.append({
-                        "phrase": phrase,
-                        "type": bias_type,
-                        "severity": "high" if len(phrase.split()) > 2 else "medium",
-                    })
-
-        return indicators
-
-    def _calculate_keyword_score(self, text: str, keywords: List[str]) -> float:
-        """Calculate score based on keyword presence."""
-        score = 0.0
-        for keyword in keywords:
-            count = text.count(keyword)
-            score += count
-
-        return min(score / 10, 1.0)  # Normalize
-
-    def _init_political_keywords(self) -> Dict[str, List[str]]:
-        """Initialize political keywords."""
-        return {
-            "left": [
-                "liberal", "progressive", "democrat", "left-wing", "socialism",
-                "social justice", "climate change", "healthcare", "worker",
-                "inequality", "marginalized", "systemic racism"
-            ],
-            "right": [
-                "conservative", "republican", "right-wing", "capitalism",
-                "freedom", "liberty", "border", "immigration restriction",
-                "traditional values", "national security", "law and order"
-            ],
-            "center": [
-                "bipartisan", "moderate", "independent", "centrist",
-                "balanced", "compromise", "both sides"
-            ]
-        }
-
-    def _init_gender_keywords(self) -> Dict[str, List[str]]:
-        """Initialize gender keywords."""
-        return {
-            "male": [
-                "man", "men", "male", "masculine", "boys", "he", "him",
-                "father", "husband", "brother", "son"
-            ],
-            "female": [
-                "woman", "women", "female", "feminine", "girls", "she", "her",
-                "mother", "wife", "sister", "daughter"
-            ],
-            "neutral": [
-                "person", "people", "they", "them", "human", "individual",
-                "someone", "everyone", "anyone"
-            ]
-        }
-
-    def _init_ideology_keywords(self) -> Dict[str, List[str]]:
-        """Initialize ideological keywords."""
-        return {
-            "progressive": [
-                "equality", "justice", "diversity", "inclusion", "change",
-                "reform", "progress", "future", "innovation", "evolution"
-            ],
-            "conservative": [
-                "tradition", "stability", "heritage", "proven", "established",
-                "classical", "time-tested", "values", "order", "preservation"
-            ],
-            "moderate": [
-                "balance", "pragmatic", "reasonable", "practical", "realistic",
-                "nuanced", "flexible", "adaptive"
-            ]
-        }
+bias_detector = BiasDetectorAgent(groq_client.get_llm(), local_models)

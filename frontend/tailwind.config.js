@@ -1,31 +1,22 @@
-export default {
+module.exports = {
   content: [
-    './index.html',
-    './src/**/*.{js,jsx,ts,tsx}',
+    "./index.html",
+    "./src/**/*.{js,jsx}",
   ],
   theme: {
     extend: {
       colors: {
-        slate: {
-          950: '#020617',
-          900: '#0f172a',
-          800: '#1e293b',
-        },
-        accent: {
-          400: '#26e5ff',
-          500: '#00d4ff',
-          600: '#00b3d9',
-        }
+        primary: "#1F2937",
+        secondary: "#374151",
+        accent: "#3B82F6",
+        danger: "#EF4444",
+        warning: "#F59E0B",
+        success: "#10B981",
       },
-      animation: {
-        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
-      },
-      keyframes: {
-        fadeInUp: {
-          from: { opacity: '0', transform: 'translateY(20px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
-        },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
       },
     },
   },
-}
+  plugins: [],
+};

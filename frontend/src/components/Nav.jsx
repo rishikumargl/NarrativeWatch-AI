@@ -1,22 +1,33 @@
 import { Link } from 'react-router-dom'
-import { Zap } from 'lucide-react'
+import { Activity, Search, BarChart3 } from 'lucide-react'
 
 export default function Nav() {
   return (
-    <nav className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur border-b border-accent-500/10">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 bg-gradient-to-br from-accent-500 to-accent-400 rounded-lg flex items-center justify-center group-hover:shadow-lg group-hover:shadow-accent-500/50 transition-all">
-            <Zap size={24} className="text-slate-950" strokeWidth={3} />
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-accent-500 to-accent-400 bg-clip-text text-transparent">
-            NarrativeWatch
-          </span>
-        </Link>
+    <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <Link to="/" className="flex items-center gap-2">
+            <Activity className="w-6 h-6 text-blue-500" />
+            <span className="text-xl font-bold text-white">NarrativeWatch</span>
+          </Link>
 
-        <Link to="/analyze" className="btn-primary">
-          Analyze Now
-        </Link>
+          <div className="flex items-center gap-8">
+            <Link
+              to="/"
+              className="text-slate-300 hover:text-white flex items-center gap-2 transition"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Home
+            </Link>
+            <Link
+              to="/analyze"
+              className="text-slate-300 hover:text-white flex items-center gap-2 transition"
+            >
+              <Search className="w-4 h-4" />
+              Analyze
+            </Link>
+          </div>
+        </div>
       </div>
     </nav>
   )

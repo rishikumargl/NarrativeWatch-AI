@@ -1,495 +1,1092 @@
-# NarrativeWatch AI
+# 🎯 NarrativeWatch AI - Real News Intelligence Platform
 
-**Multi-Agent Social Media Intelligence Platform**  
-*Detecting Misleading Content, Emotional Manipulation, Bias, and Coordinated Influence Campaigns on Instagram*
+**Advanced Multi-Agent System for Detecting Misinformation, Bias, Emotional Manipulation, and Content Analysis in News Articles**
 
 ---
 
-## 🎯 Project Overview
+## 📋 Table of Contents
 
-NarrativeWatch AI is a sophisticated agentic application that analyzes Instagram pages and posts to detect:
+1. [Overview](#overview)
+2. [Features](#features)
+3. [System Architecture](#system-architecture)
+4. [Tech Stack](#tech-stack)
+5. [Project Structure](#project-structure)
+6. [Installation & Setup](#installation--setup)
+7. [Usage Guide](#usage-guide)
+8. [API Documentation](#api-documentation)
+9. [ML Models & Analysis](#ml-models--analysis)
+10. [Frontend Architecture](#frontend-architecture)
+11. [Reflection Loop & Quality Assurance](#reflection-loop--quality-assurance)
+12. [Contributing](#contributing)
 
-- 🔴 **Misleading Content** - False claims, misinformation
-- 😡 **Emotional Manipulation** - Sensationalism, fear-mongering
-- ⚖️ **Bias** - Political, gender, ideological, religious bias
-- 🤖 **Bot Activity** - Inauthentic engagement, coordinated accounts
-- 🕸️ **Influence Campaigns** - Coordinated narrative manipulation across pages
-- 📊 **Trust Score** - Evidence-based trust rating (0-100)
+---
 
-Built with **LangChain**, **Vertex AI (Gemini 2.5)**, **PostgreSQL + pgvector**, and **Tavily Search** for comprehensive analysis.
+## 🔍 Overview
+
+NarrativeWatch AI is a comprehensive news intelligence platform that uses multiple specialized AI agents to analyze articles for:
+
+- **Misinformation & Propaganda Detection**
+- **Emotional Manipulation & Sensationalism**
+- **Political, Gender, Ideological & Socioeconomic Bias**
+- **Bot Activity & Authenticity**
+- **Entity Extraction & Recognition**
+- **Dynamic Trust Scoring (0-100)**
+
+The system implements a **reflection loop** where a Synthesis Agent generates reports, a Reviewer Agent validates quality, and the process iterates (max 3 times) until approval or fallback.
+
+### Key Differentiators
+- ✅ **AI API Integration** - Uses HuggingFace & Groq APIs for analysis
+- ✅ **Dynamic Scores** - Trust score calculated from actual findings (not static)
+- ✅ **Reflection Loop** - Auto-improvement with reviewer validation
+- ✅ **Real-time WebSocket** - Live progress updates as agents work
+- ✅ **Entity Scoring** - Entities ranked by frequency, position, importance
+- ✅ **URL Content Extraction** - Analyzes news articles from live URLs
+- ✅ **Natural Language Reports** - Professional, readable summaries
 
 ---
 
 ## ✨ Features
 
-### 9-Agent Orchestrated System
-- **Orchestrator Agent** - Coordinates workflow and task routing
-- **Content Analyzer Agent** - Extracts post features and narrative themes
-- **RAG Agent** - Retrieves similar historical content from vector DB
-- **Research Agent** - Gathers external information via web search
-- **Bias Detector Agent** - Identifies multiple types of bias
-- **Bot Detector Agent** - Analyzes engagement authenticity
-- **Campaign Detector Agent** - Finds coordinated influence campaigns
-- **Synthesis Agent** - Combines findings into coherent reports
-- **Reviewer Agent** - Quality assurance with reflection loop
+### 📊 4 Core Analysis Agents
 
-### Advanced Capabilities
-- 🔄 **Reflection Loop** - Auto-improves analysis via feedback (max 3 iterations)
-- 🎯 **Vector RAG** - PostgreSQL pgvector-powered historical pattern matching
-- 🔍 **Multi-API Integration** - Instagram, Twitter, Tavily Search, fact-checking APIs
-- 📈 **Trust Score Algorithm** - Evidence-based scoring system
-- 💾 **Persistent Memory** - Stores analyses for improvement over time
-- 🚀 **Fast Inference** - Gemini 2.5 (20x cheaper than alternatives)
+#### 1. **Content Analyzer Agent** 
+- **Sentiment Analysis** (POSITIVE/NEGATIVE/NEUTRAL)
+  - Model: `distilbert-base-uncased-finetuned-sst-2-english`
+- **Toxicity Detection** (0-100)
+  - Detects offensive/NSFW language
+- **Misinformation Classification** (0-100%)
+  - Model: `microsoft/deberta-large-mnli`
+- **Propaganda Detection** 
+  - Detects 7 techniques: loaded language, bandwagon, false dilemma, appeal to emotion, ad hominem, red herring, glittering generalities
+- **Entity Extraction with Scoring**
+  - Extracts: Countries, People, Organizations, Locations
+  - Scores by frequency + position + importance
+  - Deduplicates similar entities (USA = US = United States)
+
+#### 2. **Bias Detector Agent**
+- **5 Bias Types** (0-100 scale each):
+  1. Political Bias (left-wing vs right-wing keywords)
+  2. Gender Bias (male/female reference imbalance)
+  3. Religious Bias (positive vs negative religious language)
+  4. Ideological Bias (dogmatic language patterns)
+  5. Socioeconomic Bias (class-based language)
+- **ML Enhancement**: Zero-shot classification via `facebook/bart-large-mnli`
+- **Overall Score**: Average of 5 bias types
+- **Risk Levels**: LOW (5-30), MEDIUM (30-50), HIGH (50-70), CRITICAL (70+)
+
+#### 3. **Bot Detector Agent**
+- **Bot Probability** (0-100%)
+  - Base: 5% (prevent false zeros)
+  - +0-40% word repetition patterns
+  - +15-20% automated language
+  - +punctuation anomalies
+- **Toxicity Detection** (0-100)
+- **Authenticity Score** = 100 - bot_prob - (toxicity/2)
+
+#### 4. **Misinformation Detector Agent**
+- **ML Classification** (0-100%)
+  - Model: `microsoft/deberta-large-mnli`
+- **Propaganda Techniques** (7 types, scored)
+- **Unverified Claims Detection**
+  - Detects language: "allegedly", "reportedly", "leaked"
+  - Risk based on ratio of unverified to significant claims
+- **Emotional Manipulation** (0-75)
+  - 15+ negative emotional words
+  - 10+ positive emotional words
+  - Extremist language patterns
+- **Final Score (Weighted)**:
+  ```
+  ML(0.30) + Propaganda(0.25) + Unverified(0.25) + Emotional(0.20)
+  ```
+
+### 🔄 Synthesis & Review System
+
+#### **Synthesis Agent**
+- Combines all agent findings
+- **Calculates Dynamic Trust Score** (10-100):
+  ```
+  Start: 75
+  - Toxicity × 0.5
+  - Misinformation × 0.3
+  - Negative sentiment: -8
+  - Positive sentiment: -5
+  - Bias score × 0.3
+  - Bot probability × 0.3
+  - Misinformation risk × 0.4
+  ```
+- **Determines Risk Level**:
+  - LOW: 75-100
+  - MEDIUM: 50-75
+  - HIGH: 25-50
+  - CRITICAL: 0-25
+- Generates natural language summary with recommendations
+- LLM: `Groq llama-3.1-8b-instant`
+
+#### **Reviewer Agent**
+- Validates synthesis report quality
+- Checks: trust_score, risk_level, summary presence
+- Semantic validation: consistency checks
+- **Stricter thresholds per iteration**:
+  - Iteration 1: 0.75 quality score
+  - Iteration 2: 0.80
+  - Iteration 3: 0.85
+- LLM: `Groq llama-3.1-8b-instant`
+
+### 🔁 Reflection Loop
+
+```
+User Input → 4 Agents (parallel) → Synthesis Report
+                                          ↓
+                                    Reviewer Check
+                                          ↓
+                    Is Quality ≥ Threshold? → YES → Send Report
+                                    ↓ NO
+                          Try Again (max 3 total)
+                                    ↓
+                      All 3 rejected? → Fallback Message
+```
+
+### 📱 Real-time WebSocket Updates
+
+Frontend receives live updates:
+```json
+{
+  "type": "AGENT_START",
+  "agent": "content_analyzer",
+  "timestamp": "2026-06-15T10:30:00Z"
+}
+
+{
+  "type": "AGENT_COMPLETE",
+  "agent": "content_analyzer",
+  "data": { ... findings ... }
+}
+
+{
+  "type": "REFLECTION_ITERATION",
+  "iteration": 1,
+  "message": "Synthesis attempt 1/3..."
+}
+
+{
+  "type": "ANALYSIS_COMPLETE",
+  "trust_score": 72,
+  "risk_level": "MEDIUM",
+  "summary": "..."
+}
+```
 
 ---
 
-## 🚀 Quick Start
+## 🏗 System Architecture
 
-### Prerequisites
-- Python 3.10+
-- Google Cloud Project (for Vertex AI)
-- Instagram Graph API credentials
-- Tavily API key
-
-### Setup (5 minutes)
-
-```bash
-# 1. Clone repository
-git clone <repo-url>
-cd NarrativeWatch-AI
-
-# 2. Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Configure environment
-cp .env.example .env
-# Edit .env with your API keys (see below)
-
-# 5. Initialize database
-python scripts/init_db.py
-
-# 6. Run tests
-pytest tests/ -v
-
-# 7. Start the API
-python -m uvicorn src.app:app --reload
-```
-
-### API Configuration
-
-Get these API keys and add to `.env`:
-
-```bash
-# Google Cloud (for Vertex AI & Gemini 2.5)
-VERTEX_AI_PROJECT_ID=your-gcp-project-id
-VERTEX_AI_LOCATION=us-central1
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-
-# Instagram Data Access
-INSTAGRAM_ACCESS_TOKEN=your-instagram-token
-
-# External Search
-TAVILY_API_KEY=your-tavily-key
-
-# Backup LLM (optional)
-CLAUDE_API_KEY=your-claude-key
-
-# Embedding Model
-EMBEDDING_MODEL=text-embedding-005  # Vertex AI
-```
-
----
-
-## 📊 System Architecture
+### **Backend Architecture**
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│          User Request (Instagram Page/Post)             │
-└────────────────────┬────────────────────────────────────┘
-                     ↓
-            ┌────────────────────┐
-            │  ORCHESTRATOR      │ (Routes & Coordinates)
-            └────────┬───────────┘
-                     ↓
-     ┌───────────────┼────────────────────┬──────────────┐
-     │               │                    │              │
-  ┌──▼──┐  ┌────────▼──────┐  ┌─────────▼──┐  ┌───────▼──┐
-  │CON  │  │RAG (Weaviate)│  │ RESEARCH   │  │  BIAS    │
-  │TENT │──│              │──│ (Tavily)   │──│ DETECTOR │
-  │ANAL │  │              │  │            │  │          │
-  └──┬──┘  └────────┬──────┘  └─────────┬──┘  └───────┬──┘
-     │               │                   │            │
-     └───┬───────────┴───────┬──────────┘            │
-         │                   │                       │
-   ┌─────▼──────┐  ┌────────▼───┐      ┌────────────▼───┐
-   │ BOT        │  │ CAMPAIGN   │      │               │
-   │ DETECTOR   │  │ DETECTOR   │      │  SYNTHESIS    │
-   │            │  │            │      │               │
-   └─────┬──────┘  └────────┬───┘      └────────┬───────┘
-         │                  │                   │
-         └──────────┬───────┴───────────┬───────┘
-                    │                   │
-             ┌──────▼───────────────────▼──┐
-             │   REVIEWER AGENT            │
-             │   + REFLECTION LOOP         │
-             │   (Max 3 retries)           │
-             └──────┬──────────────────────┘
-                    │
-        ┌───────────▼──────────┐
-        │  TRUST SCORE + REPORT│
-        │  (0-100 score)       │
-        │  Evidence + Insights │
-        └──────────────────────┘
+│                    FastAPI Server (8000)                │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  WebSocket Handler: /ws/analyze/{analysis_id}         │
+│  ├─ Receives article URL/content                      │
+│  ├─ If URL → URLExtractor fetches & parses            │
+│  └─ Orchestrates 4 agents in parallel                 │
+│                                                         │
+├─────────────────────────────────────────────────────────┤
+│               4 Core Analysis Agents                    │
+│                                                         │
+│  ┌─────────────────┐  ┌─────────────────┐             │
+│  │ Content         │  │ Bias Detector   │             │
+│  │ Analyzer        │  │                 │             │
+│  │ - Sentiment     │  │ - 5 bias types  │             │
+│  │ - Toxicity      │  │ - ML classify   │             │
+│  │ - Propaganda    │  │ - Pattern match │             │
+│  │ - Misinformation│  │ - 0-100 scoring │             │
+│  │ - Entities      │  └─────────────────┘             │
+│  └─────────────────┘                                   │
+│                                                         │
+│  ┌─────────────────┐  ┌─────────────────┐             │
+│  │ Bot Detector    │  │ Misinformation  │             │
+│  │                 │  │ Detector        │             │
+│  │ - Bot prob (%)  │  │ - ML classify   │             │
+│  │ - Toxicity      │  │ - Propaganda    │             │
+│  │ - Auth score    │  │ - Unverified    │             │
+│  │ - Pattern check │  │ - Emotional     │             │
+│  └─────────────────┘  │ - Weighted score│             │
+│                       └─────────────────┘             │
+│                                                         │
+├─────────────────────────────────────────────────────────┤
+│            Synthesis & Review Loop (max 3)             │
+│                                                         │
+│  ┌──────────────────────────────────────────┐         │
+│  │ Synthesis Agent (Groq llama-3.1-8b)     │         │
+│  │ - Aggregate findings                     │         │
+│  │ - Calculate trust score (10-100)         │         │
+│  │ - Generate natural summary               │         │
+│  └──────────────────────────────────────────┘         │
+│                      ↓                                  │
+│  ┌──────────────────────────────────────────┐         │
+│  │ Reviewer Agent (Groq llama-3.1-8b)      │         │
+│  │ - Validate quality                       │         │
+│  │ - Check consistency                      │         │
+│  │ - Semantic validation                    │         │
+│  └──────────────────────────────────────────┘         │
+│                      ↓                                  │
+│          Approved? → Send | Retry (max 3)            │
+│                                                         │
+├─────────────────────────────────────────────────────────┤
+│            HuggingFace Inference API                   │
+│                                                         │
+│ • Sentiment: distilbert-base-uncased-finetuned-sst-2  │
+│ • Bias/Misinfo: facebook/bart-large-mnli              │
+│ • Misinformation: microsoft/deberta-large-mnli         │
+│ • Toxicity: unitary/toxic-bert                         │
+│                                                         │
+├─────────────────────────────────────────────────────────┤
+│            Utilities & Helpers                         │
+│                                                         │
+│ • URLExtractor: Fetches articles from live URLs       │
+│ • EntityExtractor: Regex + keyword extraction         │
+│ • LocalMLModels: Wrapper for all ML models            │
+│ • GroqClient: LLM API wrapper                         │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Technology Stack
+### **Data Flow**
 
-| Component | Technology | Notes |
-|-----------|-----------|-------|
-| **Agent Framework** | LangChain 0.1+ | Industry standard orchestration |
-| **LLM** | Vertex AI / Gemini 2.5 | Primary (fast & cheap); Claude backup |
-| **Embeddings** | Vertex AI text-embedding-005 | For RAG & similarity search |
-| **Vector DB** | PostgreSQL + pgvector | RAG storage, retrieval, pattern matching |
-| **Relational DB** | PostgreSQL | Structured data, metadata, analytics |
-| **Web Search** | Tavily API | External fact-finding & research |
-| **Data APIs** | Instagram Graph, Twitter, etc. | Content ingestion |
-| **API Service** | FastAPI | REST endpoints with Swagger docs |
-| **Container** | Docker | Production deployment |
+```
+User Input (URL or Text)
+        ↓
+URL Extraction (if URL provided)
+        ↓
+4 Agents Run in Parallel:
+├─ Content Analyzer    → sentiment, toxicity, propaganda, entities
+├─ Bias Detector       → 5 bias types scored
+├─ Bot Detector        → bot probability, authenticity
+└─ Misinformation      → propaganda, claims, emotional, final score
+        ↓
+Synthesis Agent:
+├─ Combines findings
+├─ Calculates trust score
+├─ Generates summary
+└─ Returns initial report
+        ↓
+Reviewer Agent:
+├─ Validates quality
+├─ If approved → Send to frontend
+├─ If rejected → Retry (max 3)
+└─ If all fail → Fallback message
+        ↓
+WebSocket → Frontend Display
+```
+
+---
+
+## 🛠 Tech Stack
+
+### **Backend**
+- **Framework**: FastAPI (async Python)
+- **LLM API**: Groq (llama-3.1-8b-instant)
+- **ML APIs**: HuggingFace Inference API
+- **Web Extraction**: newspaper3k + BeautifulSoup4
+- **Logging**: Python logging module
+- **Database**: Optional PostgreSQL (for future history)
+
+### **Frontend**
+- **Framework**: React 18
+- **Styling**: Tailwind CSS
+- **State**: React hooks (useState, useContext)
+- **Real-time**: WebSocket API
+- **Charts**: Simple progress bars + status indicators
+- **Storage**: localStorage for project persistence
+
+### **ML APIs Used**
+
+| Task | Model | Provider | Endpoint |
+|------|-------|----------|----------|
+| Sentiment | distilbert-base-uncased-finetuned-sst-2 | HuggingFace | api-inference.huggingface.co |
+| Bias/Misinfo | facebook/bart-large-mnli | HuggingFace | api-inference.huggingface.co |
+| Misinformation | microsoft/deberta-large-mnli | HuggingFace | api-inference.huggingface.co |
+| Toxicity | unitary/toxic-bert | HuggingFace | api-inference.huggingface.co |
+| LLM | llama-3.1-8b-instant | Groq | api.groq.com |
+
+All models accessed via REST APIs, no local installation required
 
 ---
 
 ## 📁 Project Structure
 
 ```
-NarrativeWatch-AI/
-├── README.md                          ← You are here
-├── LLD_AND_TEAM_PLAN.md              ← Complete design document (150+ pages)
-├── IMPLEMENTATION_CHECKLIST.md        ← Weekly task breakdown
-├── VECTOR_DB_SCHEMA.md               ← Database schema design
-├── VERTEX_AI_INTEGRATION.md          ← Vertex AI setup & usage
-├── QUICK_START_GUIDE.md              ← 5-min team onboarding
-├── PROJECT_OVERVIEW.md               ← Project governance & status
-│
-├── .env.example                       ← Copy to .env and configure
-├── requirements.txt                   ← All Python dependencies
-├── setup.sh                           ← One-command local setup
-├── docker-compose.yml                 ← Docker stack for testing
-├── Dockerfile                         ← Container image definition
-│
-├── src/
-│   ├── agents/
-│   │   ├── base_agent.py             ← Base class for all agents
-│   │   ├── orchestrator.py           ← Orchestrator Agent (#1)
-│   │   ├── content_analyzer.py       ← Content Analyzer Agent (#2)
-│   │   ├── rag_agent.py              ← RAG Agent (#3)
-│   │   ├── research_agent.py         ← Research Agent (#4)
-│   │   ├── bias_detector.py          ← Bias Detector Agent (#5)
-│   │   ├── bot_detector.py           ← Bot Detector Agent (#6)
-│   │   ├── campaign_detector.py      ← Campaign Detector Agent (#7)
-│   │   ├── synthesis_agent.py        ← Synthesis Agent (#8)
-│   │   └── reviewer_agent.py         ← Reviewer Agent (#9)
+NarrativeWatch AI/
+├── backend/
+│   ├── src/
+│   │   ├── app.py                           # Main FastAPI server
+│   │   ├── config.py                        # Configuration
+│   │   ├── logger.py                        # Logging setup
+│   │   │
+│   │   ├── agents/
+│   │   │   ├── __init__.py
+│   │   │   ├── content_analyzer.py          # Sentiment, toxicity, entities
+│   │   │   ├── bias_detector.py             # 5 bias types
+│   │   │   ├── bot_detector.py              # Bot probability
+│   │   │   ├── misinformation_detector.py   # Propaganda, claims, emotion
+│   │   │   ├── synthesis_agent.py           # Combines findings, trust score
+│   │   │   └── reviewer_agent.py            # Quality validation
+│   │   │
+│   │   ├── llm/
+│   │   │   └── groq_client.py               # Groq API wrapper
+│   │   │
+│   │   ├── ml_models_local.py               # Transformers wrapper
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── entity_extractor.py          # Entity extraction + scoring
+│   │   │   ├── url_extractor.py             # Article fetching
+│   │   │   └── __init__.py
+│   │   │
+│   │   ├── database/
+│   │   │   └── connection.py                # DB setup (optional)
+│   │   │
+│   │   └── api/
+│   │       └── __init__.py
 │   │
-│   ├── apis/
-│   │   ├── llm_client.py             ← Multi-provider LLM (Vertex/Claude/OpenAI)
-│   │   ├── tavily_api.py             ← Tavily search wrapper
-│   │   ├── instagram_api.py          ← Instagram Graph API client
-│   │   ├── twitter_api.py            ← Twitter API client
-│   │   └── fact_check_api.py         ← Fact-checking APIs
-│   │
-│   ├── database/
-│   │   ├── postgres_client.py        ← PostgreSQL connection
-│   │   ├── models.py                 ← SQLAlchemy ORM models
-│   │   └── rag_pipeline.py           ← Embeddings & pgvector retrieval
-│   │
-│   ├── models/
-│   │   ├── request.py                ← Input models (Pydantic)
-│   │   ├── response.py               ← Output models
-│   │   └── enums.py                  ← Enumerations
-│   │
-│   ├── utils/
-│   │   ├── text_processor.py         ← NLP preprocessing
-│   │   ├── embedding_utils.py        ← Embedding generation
-│   │   ├── scoring.py                ← Trust score calculation
-│   │   └── validators.py             ← Input validation
-│   │
-│   ├── workflow/
-│   │   ├── orchestration.py          ← Main workflow logic
-│   │   ├── reflection_loop.py        ← Reviewer feedback loop
-│   │   └── state_manager.py          ← State management
-│   │
-│   ├── config.py                     ← Configuration management
-│   ├── logger.py                     ← Logging setup
-│   └── app.py                        ← FastAPI application
+│   ├── requirements.txt
+│   ├── .env                                 # API keys (Groq)
+│   └── run.py                               # Server launcher
 │
-├── tests/
-│   ├── test_agents.py                ← Agent unit tests
-│   ├── test_apis.py                  ← API integration tests
-│   ├── test_rag.py                   ← RAG pipeline tests
-│   └── test_integration.py           ← End-to-end tests
+├── frontend/
+│   ├── public/
+│   │   ├── index.html
+│   │   └── favicon.ico
+│   │
+│   ├── src/
+│   │   ├── App.jsx                          # Main app component
+│   │   ├── index.css                        # Global styles
+│   │   ├── index.js                         # Entry point
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── ProjectsPage.jsx             # Project list + create
+│   │   │   ├── AnalyzePage.jsx              # Live analysis display
+│   │   │   └── ReportPage.jsx               # Final report (future)
+│   │   │
+│   │   ├── components/
+│   │   │   ├── AgentCard.jsx                # Individual agent progress
+│   │   │   ├── TrustScoreGauge.jsx          # Trust score display
+│   │   │   ├── EntityList.jsx               # Entity display
+│   │   │   ├── RiskAssessment.jsx           # Risk breakdown
+│   │   │   └── ReflectionLoop.jsx           # Synthesis/review status
+│   │   │
+│   │   └── utils/
+│   │       └── websocket.js                 # WebSocket handler
+│   │
+│   ├── package.json
+│   ├── .env                                 # React app URLs
+│   └── tailwind.config.js
 │
-├── notebooks/
-│   ├── exploration.ipynb             ← Data exploration
-│   └── testing.ipynb                 ← Component testing
-│
-├── docs/
-│   ├── API_REFERENCE.md              ← API documentation
-│   ├── SETUP_GUIDE.md                ← Detailed setup
-│   └── DEPLOYMENT.md                 ← Production deployment
-│
-└── scripts/
-    └── init_db.py                    ← Database initialization
+├── README.md                                # This file
+└── .gitignore
 ```
 
 ---
 
-## 🔌 API Endpoints
+## ⚙️ Installation & Setup
+
+### **Prerequisites**
+- Python 3.9+
+- Node.js 16+
+- 4GB+ RAM (for local ML models)
+- Internet (first download of models only)
+
+### **Step 1: Backend Setup**
 
 ```bash
-# Health Check
+# Clone repository
+cd "NarrativeWatch AI"
+
+# Create virtual environment
+python -m venv venv
+source venv/Scripts/activate  # Windows
+# OR
+source venv/bin/activate      # Mac/Linux
+
+# Install dependencies
+cd backend
+pip install -r requirements.txt
+
+# Create .env file
+cat > .env << EOF
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=llama-3.1-8b-instant
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+DATABASE_URL=postgresql://user:pass@localhost:5432/narrativewatch
+EOF
+
+# Run server
+python -m uvicorn src.app:app --host 127.0.0.1 --port 8000
+```
+
+**Get API Keys:**
+1. **Groq**: https://console.groq.com (free tier available)
+2. **HuggingFace**: https://huggingface.co/settings/tokens (free tier available)
+
+### **Step 2: Frontend Setup**
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Create .env file
+cat > .env << EOF
+REACT_APP_WS_URL=ws://localhost:8000
+REACT_APP_API_URL=http://localhost:8000
+EOF
+
+# Start development server
+npm start
+```
+
+App opens at `http://localhost:3000`
+
+### **Step 3: Verify Installation**
+
+```bash
+# Backend health check
+curl http://localhost:8000/health
+
+# Expected output:
+# {
+#   "status": "healthy",
+#   "version": "2.0",
+#   "ml_models": 4,
+#   "agents": 4
+# }
+```
+
+---
+
+## 📖 Usage Guide
+
+### **Analyzing an Article**
+
+#### **Option 1: Paste URL**
+1. Click "Create New Project"
+2. Enter article URL (e.g., `https://example.com/news-article`)
+3. Click "Create & Analyze"
+4. Watch agents process in real-time
+5. View full report when complete
+
+#### **Option 2: Paste Content**
+1. Click "Create New Project"
+2. Paste article text
+3. Click "Create & Analyze"
+4. Same workflow as above
+
+### **Understanding Results**
+
+#### **Trust Score (0-100)**
+- **75-100**: Highly credible, well-sourced
+- **50-75**: Generally trustworthy with minor issues
+- **25-50**: Significant concerns, verify claims
+- **0-25**: Major red flags, likely misinformation
+
+#### **Risk Level**
+- **LOW**: Safe to share
+- **MEDIUM**: Verify key claims
+- **HIGH**: High risk, treat skeptically
+- **CRITICAL**: Don't share without verification
+
+#### **Agent Breakdown**
+- **Content Analyzer**: Sentiment, toxicity, misinformation likelihood
+- **Bias Detector**: Political, gender, religious, ideological bias
+- **Bot Detector**: Authenticity and automated patterns
+- **Misinformation Detector**: Propaganda techniques, emotional manipulation
+
+#### **Full Report**
+Summary explains:
+1. Why the trust score was assigned
+2. Key findings from all agents
+3. Specific recommendations for readers
+
+---
+
+## 📡 API Documentation
+
+### **WebSocket Endpoint**
+
+```
+ws://localhost:8000/ws/analyze/{analysis_id}
+```
+
+#### **Message Format: Client → Server**
+
+```json
+{
+  "url": "https://example.com/article",
+  "content": "Optional: full article text",
+  "title": "Optional: article title"
+}
+```
+
+#### **Message Format: Server → Client**
+
+```json
+// Agent starts
+{
+  "type": "AGENT_START",
+  "agent": "content_analyzer",
+  "timestamp": "2026-06-15T10:30:00Z"
+}
+
+// Agent completes
+{
+  "type": "AGENT_COMPLETE",
+  "agent": "content_analyzer",
+  "data": {
+    "agent": "content_analyzer",
+    "findings": {
+      "analysis": {
+        "sentiment": { "label": "NEGATIVE", "score": 0.95 },
+        "toxicity": { "toxicity_score": 27 },
+        "entities": {
+          "total_count": 5,
+          "entities": [
+            { "name": "USA", "type": "COUNTRY", "frequency": 8, "importance_score": 85.3 }
+          ]
+        }
+      }
+    }
+  }
+}
+
+// Synthesis iteration
+{
+  "type": "REFLECTION_ITERATION",
+  "iteration": 1,
+  "max_iterations": 3,
+  "message": "Synthesis attempt 1/3..."
+}
+
+// Review feedback
+{
+  "type": "REFLECTION_REVIEW",
+  "iteration": 1,
+  "approved": false,
+  "quality_score": 0.72,
+  "feedback": ["Summary too short", "Missing risk assessment"]
+}
+
+// Analysis complete
+{
+  "type": "ANALYSIS_COMPLETE",
+  "analysis_id": "123456789",
+  "trust_score": 67,
+  "risk_level": "MEDIUM",
+  "summary": "This article presents...",
+  "reflection_loop": {
+    "approved": true,
+    "iteration": 2,
+    "total_iterations": 3
+  }
+}
+
+// Or fallback if rejected 3x
+{
+  "type": "ANALYSIS_FALLBACK",
+  "message": "After 3 attempts, could not generate satisfactory analysis...",
+  "fallback": {
+    "trust_score": 45,
+    "risk_level": "HIGH",
+    "summary": "Best attempt (iteration 3)"
+  }
+}
+```
+
+### **REST Endpoints**
+
+#### **Health Check**
+```
 GET /health
-# Response: {"status": "ok", "timestamp": "2026-06-12T10:30:00Z"}
-
-# Analyze Instagram Page
-POST /analyze/page
-# Request:
-{
-  "username": "instagram_page_name",
-  "include_posts": true,
-  "num_posts": 20
-}
-# Response:
-{
-  "pageId": "123456",
-  "username": "instagram_page_name",
-  "trustScore": 35,
-  "riskLevel": "high",
-  "detectedIssues": ["misleading_content", "bot_activity"],
-  "report": "...",
-  "evidence": [...]
-}
-
-# Analyze Single Post
-POST /analyze/post
-# Request:
-{
-  "postUrl": "https://instagram.com/p/ABC123DEF456/",
-  "includeContext": true
-}
-# Response:
-{
-  "postId": "ABC123DEF456",
-  "trustScore": 42,
-  "findings": {...}
-}
-
-# Get Analysis Results
-GET /results/{resultId}
-# Returns cached analysis
-
-# Search Similar Content
-POST /search/similar
-# Find similar posts/campaigns in vector DB
 ```
 
-See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for complete API documentation.
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pytest tests/ -v
-
-# Run with coverage report
-pytest tests/ --cov=src --cov-report=html
-
-# Run specific test file
-pytest tests/test_agents.py -v
-
-# Run with debug output
-pytest tests/ -vv -s
+Response:
+```json
+{
+  "status": "healthy",
+  "version": "2.0",
+  "inference_engine": "Local ML Models",
+  "ml_models": 4,
+  "agents": 4,
+  "timestamp": "2026-06-15T10:30:00Z"
+}
 ```
 
-**Coverage Goal:** 80%+ across all modules
+#### **Models Info**
+```
+GET /api/v1/models
+```
 
----
-
-## 🐳 Docker Deployment
-
-```bash
-# Build image
-docker build -t narrativewatch-ai:latest .
-
-# Run locally
-docker run -p 8000:8000 \
-  -e VERTEX_AI_PROJECT_ID=your-project \
-  -e VERTEX_AI_LOCATION=us-central1 \
-  narrativewatch-ai:latest
-
-# Or use docker-compose (includes PostgreSQL + pgvector)
-docker-compose up -d
-# Access API at http://localhost:8000
-# PostgreSQL at localhost:5432
+Response:
+```json
+{
+  "models": [
+    { "name": "Sentiment Analysis", "model": "distilbert-base-uncased-finetuned-sst-2-english", "accuracy": "95%" },
+    { "name": "Bias Detection", "model": "facebook/bart-large-mnli", "accuracy": "93%" },
+    ...
+  ],
+  "total_models": 4,
+  "overall_accuracy": "91.5%"
+}
 ```
 
 ---
 
-## 📚 Documentation
+## 🧠 ML Models & Analysis
 
-- **[LLD_AND_TEAM_PLAN.md](LLD_AND_TEAM_PLAN.md)** - Complete design & architecture (150+ pages)
-- **[VECTOR_DB_SCHEMA.md](VECTOR_DB_SCHEMA.md)** - Weaviate schema & RAG design
-- **[VERTEX_AI_INTEGRATION.md](VERTEX_AI_INTEGRATION.md)** - Gemini 2.5 setup
-- **[QUICK_START_GUIDE.md](QUICK_START_GUIDE.md)** - Team onboarding (5 min)
-- **[IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md)** - Weekly tasks
-- **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)** - REST API docs
-- **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)** - Detailed setup instructions
-- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Production deployment
+### **1. Sentiment Analysis**
+
+**API**: HuggingFace Inference API
+
+**Model**: `distilbert-base-uncased-finetuned-sst-2-english`
+
+**Output**: POSITIVE, NEGATIVE, NEUTRAL + confidence score
+
+**Used in**: Trust score calculation (negative = -8, positive = -5 for sensationalism)
+
+### **2. Toxicity Detection**
+
+**API**: HuggingFace Inference API
+
+**Model**: `unitary/toxic-bert`
+
+**Detects**: Offensive, NSFW, profanity, hate speech
+
+**Output**: 0-100 score
+
+**Used in**: Bot authenticity, trust score penalties
+
+### **3. Misinformation Classification**
+
+**API**: HuggingFace Inference API
+
+**Model**: `microsoft/deberta-large-mnli`
+
+**Zero-shot prompt**: "Does this text contain misinformation?"
+
+**Output**: 0-100% likelihood
+
+**Used in**: Misinformation detector agent, trust score
+
+### **4. Bias Detection**
+
+**API**: HuggingFace Inference API
+
+**Model**: `facebook/bart-large-mnli`
+
+**Prompt**: "Is this text biased?"
+
+**Output**: Bias confidence score
+
+**Used with**: Pattern-based detection (keywords, ratios)
+
+**Final score**: Average of 5 bias types (political, gender, religious, ideological, socioeconomic)
+
+### **5. Entity Extraction**
+
+**Method**: Regex patterns + keyword matching + frequency analysis
+
+**Types**: COUNTRY, PERSON, ORGANIZATION, LOCATION
+
+**Scoring**:
+- Frequency (0-35): How many times mentioned
+- Position (0-35): Earlier mentions weighted higher
+- Type (0-30): PERSON > COUNTRY > LOCATION > ORG
+- Context (0-10): Geopolitical keywords present
+
+**Output**: Top 25 entities ranked by importance score
+
+### **6. Propaganda Detection**
+
+**Method**: Pattern matching for 7 techniques
+
+1. **Loaded Language**: evil, corrupt, monsters, patriots, heroes
+2. **Bandwagon**: everyone, all experts, widely accepted
+3. **False Dilemma**: either/or, only option, must choose
+4. **Appeal to Emotion**: shocking, devastating, outrageous
+5. **Ad Hominem**: fool, idiot, stupid
+6. **Red Herring**: anyway, by the way, aside from
+7. **Glittering Generalities**: freedom, justice, truth, democracy
+
+**Scoring**: Per-article frequency normalized to 0-100
+
+### **7. Emotional Manipulation**
+
+**Detects**:
+- Negative emotional words (15+): war, attack, kill, death, terror
+- Positive emotional words (10+): amazing, wonderful, perfect, victory
+- Extremist language: always, never, everyone, must, definitely
+
+**Scoring**: (negative×1.0 + positive×0.8 + extremist×0.7) / word_count × 40, capped at 75
+
+### **8. Unverified Claims**
+
+**Detects**:
+- Unverified language: allegedly, reportedly, leaked, unconfirmed
+- Significant claims: nuclear, weapons, ceasefire, peace deal, treaty
+
+**Risk Calculation**:
+```
+If unverified_count > 0 AND claim_count > 2:
+  risk = (unverified / claim_count) × 50 + claim_count × 5
+If claims_present AND no_sources:
+  risk += 20
+```
 
 ---
 
-## 🎓 Learning Resources
+## 🎨 Frontend Architecture
 
-- **LangChain:** https://python.langchain.com/docs/
-- **Vertex AI:** https://cloud.google.com/vertex-ai/docs
-- **Weaviate:** https://weaviate.io/developers/weaviate/
-- **Tavily:** https://tavily.com/
-- **FastAPI:** https://fastapi.tiangolo.com/
+### **Page Structure**
+
+#### **ProjectsPage.jsx**
+- **Purpose**: Create new analysis projects
+- **Features**:
+  - Input form (URL or text)
+  - Project list with status
+  - Completed projects section
+  - Delete project button
+  - localStorage persistence
+- **Flow**: Create → immediately navigate to AnalyzePage
+
+#### **AnalyzePage.jsx**
+- **Purpose**: Real-time analysis display
+- **Features**:
+  - 4 agent cards with progress bars
+  - Real-time status updates via WebSocket
+  - Entity display with scores
+  - Risk assessment breakdown
+  - Reflection loop status
+  - Full report summary
+- **WebSocket Integration**:
+  - Connects on mount
+  - Updates agent progress as data arrives
+  - Shows iteration count + quality feedback
+  - Displays final summary when approved
+
+### **Component Hierarchy**
+
+```
+App.jsx
+├── ProjectsPage
+│   ├── ProjectForm (input)
+│   ├── ProjectList (active)
+│   └── CompletedList
+│
+└── AnalyzePage
+    ├── AgentCard (×4)
+    │   ├── ProgressBar
+    │   ├── StatusText
+    │   └── AgentDetails
+    ├── ReflectionLoop
+    │   ├── IterationCount
+    │   ├── ApprovalStatus
+    │   └── FeedbackList
+    ├── RiskAssessment
+    │   ├── TrustScoreGauge
+    │   ├── RiskBreakdown
+    │   └── EntityList
+    └── FullReport
+        ├── Summary
+        └── RecommendationSection
+```
+
+### **Styling**
+
+- **Framework**: Tailwind CSS
+- **Theme**: Dark (bg-gray-900, text-white)
+- **Accent Colors**:
+  - Blue: Content Analyzer
+  - Purple: Bias Detector
+  - Pink: Bot Detector
+  - Red: Misinformation
+- **Responsive**: Mobile-first design
+- **Animations**: Smooth transitions + progress bars
+
+### **State Management**
+
+```javascript
+// AnalyzePage state
+const [project, setProject] = useState(null)          // Current project
+const [agents, setAgents] = useState({                // Agent data
+  content_analyzer: { status: "pending", data: null },
+  bias_detector: { status: "pending", data: null },
+  bot_detector: { status: "pending", data: null },
+  misinformation_detector: { status: "pending", data: null }
+})
+const [reflection, setReflection] = useState({        // Synthesis/review status
+  iteration: 0,
+  approved: false,
+  quality_score: 0,
+  feedback: []
+})
+const [report, setReport] = useState(null)            // Final report
+```
+
+### **WebSocket Handler**
+
+```javascript
+useEffect(() => {
+  const ws = new WebSocket(`${REACT_APP_WS_URL}/ws/analyze/${projectId}`)
+  
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      url: project.url,
+      content: project.fullContent,
+      title: project.title
+    }))
+  }
+  
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data)
+    
+    switch(data.type) {
+      case "AGENT_START":
+        setAgents(prev => ({
+          ...prev,
+          [data.agent]: { status: "processing", data: null }
+        }))
+        break
+      
+      case "AGENT_COMPLETE":
+        setAgents(prev => ({
+          ...prev,
+          [data.agent]: { status: "completed", data: data.data }
+        }))
+        break
+      
+      case "REFLECTION_ITERATION":
+        setReflection(prev => ({
+          ...prev,
+          iteration: data.iteration
+        }))
+        break
+      
+      case "REFLECTION_REVIEW":
+        setReflection(prev => ({
+          ...prev,
+          approved: data.approved,
+          quality_score: data.quality_score,
+          feedback: data.feedback
+        }))
+        break
+      
+      case "ANALYSIS_COMPLETE":
+        setReport({
+          trust_score: data.trust_score,
+          risk_level: data.risk_level,
+          summary: data.summary
+        })
+        break
+      
+      case "ANALYSIS_FALLBACK":
+        setReport({
+          trust_score: data.fallback.trust_score,
+          risk_level: data.fallback.risk_level,
+          summary: data.message + "\n\n" + data.fallback.summary
+        })
+        break
+    }
+  }
+  
+  return () => ws.close()
+}, [projectId])
+```
+
+---
+
+## 🔁 Reflection Loop & Quality Assurance
+
+### **How It Works**
+
+```
+Synthesis Agent generates report
+              ↓
+Reviewer validates quality
+              ↓
+    Quality ≥ Threshold?
+      ↙ YES      NO ↘
+  Send Report  Retry? (Attempt N of 3)
+                      ↓
+            (Process repeats)
+                      ↓
+                  All 3 failed?
+                  ↙ YES    NO ↘
+            Fallback    Continue
+            Message     attempt 4
+```
+
+### **Synthesis Agent**
+
+**Inputs**: 4 agent findings + metrics
+
+**Process**:
+1. Extract key metrics (toxicity, sentiment, bias, bot prob, etc.)
+2. Create LLM prompt with context
+3. Request natural language summary
+4. LLM generates 4-5 sentence assessment
+
+**Prompt Template**:
+```
+You are an expert news analyst. Analyze metrics:
+- Trust Score: 67/100
+- Sentiment: NEGATIVE
+- Toxicity: 61/100
+- Bias: 15/100
+- Propaganda detected: Yes
+- Unverified claims: Moderate
+
+Write 4-5 sentences explaining:
+1. Overall credibility assessment
+2. Key reasons for trust score
+3. What article does well (if any)
+4. Clear recommendations
+
+Keep tone objective, use simple language, no percentages in main text.
+```
+
+### **Reviewer Agent**
+
+**Validates**:
+1. **Structure**: trust_score, risk_level, summary present?
+2. **Consistency**: Does trust_score match risk_level?
+3. **Quality**: Is summary coherent and actionable?
+4. **Semantic**: Does explanation match the metrics?
+
+**Scoring**: Returns quality_score (0.0-1.0)
+
+**Thresholds**:
+- Iteration 1: quality_score ≥ 0.75 → approve
+- Iteration 2: quality_score ≥ 0.80 → approve
+- Iteration 3: quality_score ≥ 0.85 → approve
+- Iteration 4: Doesn't exist → fallback
+
+**Feedback**: Provides specific issues for synthesis retry
+
+### **Fallback Strategy**
+
+If all 3 iterations rejected:
+
+```json
+{
+  "type": "ANALYSIS_FALLBACK",
+  "message": "After 3 review attempts, the system could not generate a fully satisfactory analysis. Please try with a different article.",
+  "fallback": {
+    "trust_score": 42,
+    "risk_level": "HIGH",
+    "summary": "[Best attempt from iteration 3]"
+  }
+}
+```
+
+---
+
+## 🚀 Performance & Optimization
+
+### **Speed**
+
+- **Agent parallelization**: 4 agents run simultaneously (~8-12 sec total)
+- **WebSocket streaming**: No waiting for all data, updates as they arrive
+- **API-based inference**: Models hosted on HuggingFace servers
+- **Groq API**: ~500ms for synthesis (vs 2-5s for OpenAI)
+
+### **Memory**
+
+- **Runtime**: ~150MB baseline, minimal per analysis
+- **Optimization**: No local model loading, stateless agents
+
+### **Scalability**
+
+- **Current**: Single-user, tested locally
+- **For production**:
+  - Run backend on dedicated server
+  - Use load balancer for multiple instances
+  - Add Redis for session management
+  - Database for analysis history
+  - API rate limiting & caching
+  - CDN for frontend delivery
 
 ---
 
 ## 🤝 Contributing
 
-1. Create feature branch: `git checkout -b feature/your-feature`
-2. Make changes and write tests
-3. Commit with clear messages: `git commit -m "Clear description"`
-4. Push to remote: `git push origin feature/your-feature`
-5. Create Pull Request for review
-6. Address feedback and merge
+### **Adding New Analysis**
 
-**Code Quality Standards:**
-- Python PEP 8 (use `black` formatter)
-- Type hints on all functions
-- Unit tests (80%+ coverage)
-- Docstrings for all modules/functions
-- No hardcoded values (use `.env`)
+1. **Create Agent**:
+   ```python
+   class NewAnalyzerAgent:
+       def __init__(self, llm, ml):
+           self.llm = llm
+           self.ml = ml
+       
+       async def analyze(self, text: str) -> dict:
+           # Implement analysis
+           return {"findings": {...}}
+   ```
 
----
+2. **Register in app.py**:
+   ```python
+   agents_list = [
+       ("new_analyzer", new_analyzer_instance),
+       ...
+   ]
+   ```
 
-## 📊 Performance
+3. **Display on frontend**: Update AnalyzePage.jsx to render new agent card
 
-**Typical Analysis Time:**
-- Single post analysis: 5-10 seconds
-- Full page analysis (20 posts): 30-60 seconds
-- Campaign detection (10 pages): 60-120 seconds
+### **Improving Models**
 
-**Cost per Analysis (Vertex AI):**
-- Single post: ~$0.00004
-- Full page: ~$0.0004
-- Campaign: ~$0.0005
+- Replace transformers with better models as needed
+- Fine-tune on domain-specific data
+- Add custom classifiers for specific tasks
 
-**Comparison:**
-- Claude: 20-50x more expensive
-- GPT-4o: 25-50x more expensive
+### **Bug Fixes**
 
----
-
-## 🔒 Security
-
-- API keys stored in `.env` (never committed)
-- Input validation on all endpoints
-- SQL injection protection (using Pydantic models)
-- Rate limiting on external APIs
-- Secure communication (HTTPS in production)
-- No sensitive data logged
-
----
-
-## 📈 Roadmap
-
-**V1.1 (2 weeks post-launch)**
-- Multi-language support
-- Real-time alert notifications
-- Advanced filtering & search
-
-**V1.2 (1 month post-launch)**
-- Mobile app (iOS/Android)
-- Advanced dashboard & visualizations
-- API authentication & rate limiting
-
-**V2.0 (3 months post-launch)**
-- Multi-platform support (TikTok, YouTube, Twitter)
-- ML model fine-tuning
-- Enterprise analytics dashboard
-- Licensing model for organizations
-
----
-
-## 📝 License
-
-This project is developed for educational and research purposes as part of the FDE Team Activity requirement.
-
----
-
-## 👥 Team
-
-- **Project Lead:** Rohan Urmude
-- **Backend Specialist:** [Team Member]
-- **ML/NLP Specialist:** [Team Member]
-- **Senior Data Engineer:** [Team Member]
-- **Frontend/DevOps:** [Team Member] (Optional)
-- **QA Lead:** [Team Member] (Optional)
-
----
-
-## ❓ FAQ
-
-**Q: Why Vertex AI over Claude/GPT-4?**  
-A: 20-50x cost savings while maintaining high quality. Gemini 2.5 has 1M token context and excellent tool support.
-
-**Q: Can I switch to Claude later?**  
-A: Yes! The LLMClient supports both. Just change `LLM_PROVIDER` in `.env`.
-
-**Q: How does the reflection loop work?**  
-A: Reviewer agent checks synthesis quality. If issues found, synthesis agent regenerates with feedback (max 3 tries).
-
-**Q: What's in the vector DB?**  
-A: Historical posts, pages, campaigns, bias patterns, analysis results. Used for RAG retrieval.
-
-**Q: How long does a full page analysis take?**  
-A: 30-60 seconds including RAG retrieval, API calls, and multi-agent analysis.
-
-**Q: Can I run this locally?**  
-A: Yes! Use `docker-compose up` to start Weaviate locally. Just needs Google Cloud credentials.
+1. Identify issue with reproducible steps
+2. Add logging to debug
+3. Fix in minimal scope
+4. Test with multiple articles
+5. Submit PR with explanation
 
 ---
 
 ## 📞 Support
 
-- **Questions?** See [QUICK_START_GUIDE.md](QUICK_START_GUIDE.md#questions)
-- **Bug reports?** Create GitHub Issue
-- **Setup issues?** Check [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)
-- **Architecture questions?** See [LLD_AND_TEAM_PLAN.md](LLD_AND_TEAM_PLAN.md)
+- **Issues**: Found a bug? Open an issue with details
+- **Questions**: Check documentation first, then ask
+- **Contributions**: Fork, implement, test, submit PR
 
 ---
 
-## 🚀 Getting Started Now
+## 📄 License
 
-1. **Read:** [QUICK_START_GUIDE.md](QUICK_START_GUIDE.md) (5 minutes)
-2. **Setup:** Follow "Quick Start" section above (5 minutes)
-3. **Test:** Run `pytest tests/ -v` (2 minutes)
-4. **Learn:** Read [LLD_AND_TEAM_PLAN.md](LLD_AND_TEAM_PLAN.md) (45 minutes)
-5. **Code:** Check [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md)
+This project is created for educational and research purposes.
 
 ---
 
-**Created:** 2026-06-12  
-**Status:** Ready for Development  
-**Next Step:** Distribute to team and begin Phase 1 (Infrastructure Setup)
+## 🙏 Acknowledgments
 
-🚀 **Let's build something amazing!**
+- **Groq** for free, fast LLM API
+- **Hugging Face** for transformers library
+- **FastAPI** for excellent web framework
+- **React** community for frontend tools
 
+---
+
+**Last Updated**: June 15, 2026
+**Version**: 2.0
+**Status**: Active Development
+
+---
+
+Made with ❤️ for real news intelligence 🚀

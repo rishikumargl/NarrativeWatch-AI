@@ -16,6 +16,7 @@ from src.agents.misinformation_detector import misinformation_detector
 from src.agents.synthesis_agent import SynthesisAgent
 from src.agents.reviewer_agent import reviewer_agent
 from src.utils.url_extractor import URLExtractor
+from src.services.analysis_service import analysis_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -245,6 +246,32 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
         risk_level = findings_obj.get("risk_level", "UNKNOWN")
         summary = findings_obj.get("summary", "")
 
+        # SAVE TO DATABASE
+        logger.info(f"💾 Saving analysis to database...")
+        analysis_data = {
+            "analysis_id": analysis_id,
+            "article_url": article_url,
+            "article_title": article_title,
+            "article_content": article_text,
+            "content_analyzer": all_findings.get("content_analyzer"),
+            "bias_detector": all_findings.get("bias_detector"),
+            "bot_detector": all_findings.get("bot_detector"),
+            "misinformation_detector": all_findings.get("misinformation_detector"),
+            "synthesis": final_findings,
+            "analysis_complete": approved,
+            "approval_iteration": iteration,
+            "total_iterations": max_iterations,
+            "review": {
+                "quality_score": review_findings.get("quality_score", 0)
+            }
+        }
+
+        save_success = analysis_service.save_analysis(analysis_data)
+        if save_success:
+            logger.info(f"✅ Analysis saved to database")
+        else:
+            logger.warning(f"⚠️ Failed to save analysis to database (non-blocking)")
+
         # SEND RESULT
         if approved:
             logger.info(f"🎉 Analysis approved and complete!")
@@ -260,6 +287,7 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
                     "iteration": iteration,
                     "total_iterations": max_iterations
                 },
+                "database_saved": save_success,
                 "timestamp": datetime.utcnow().isoformat()
             })
         else:
@@ -278,6 +306,7 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
                     "attempts": max_iterations,
                     "reason": "Quality standards not met after maximum retry attempts"
                 },
+                "database_saved": save_success,
                 "timestamp": datetime.utcnow().isoformat()
             })
         logger.info(f"✅ WebSocket analysis complete: {analysis_id}")
@@ -301,11 +330,28 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
             pass
 
 @app.get("/api/v1/history")
-async def get_history():
+async def get_history(limit: int = 50):
+    """Get analysis history from database."""
+    analyses = analysis_service.get_analysis_history(limit=limit)
     return {
-        "analyses": [],
-        "total": 0
+        "analyses": analyses,
+        "total": len(analyses),
+        "limit": limit
     }
+
+@app.get("/api/v1/analysis/{analysis_id}")
+async def get_analysis_detail(analysis_id: str):
+    """Get detailed analysis result by ID."""
+    analysis = analysis_service.get_analysis_by_id(analysis_id)
+    if not analysis:
+        return {"error": "Analysis not found"}
+    return analysis
+
+@app.get("/api/v1/statistics")
+async def get_statistics():
+    """Get analysis statistics."""
+    stats = analysis_service.get_statistics()
+    return stats
 
 @app.get("/api/v1/models")
 async def get_models():

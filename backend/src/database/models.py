@@ -295,3 +295,77 @@ class AnalysisResult(Base):
         Index('idx_analysis_results_analysis_timestamp', 'analysis_timestamp'),
         Index('idx_analysis_results_reviewer_approved', 'reviewer_approved'),
     )
+
+
+class NewsArticleAnalysis(Base):
+    """Complete news article analysis with all findings."""
+
+    __tablename__ = "news_article_analyses"
+
+    # Identifiers
+    analysis_id = Column(String(255), primary_key=True, index=True)
+    article_url = Column(String(1000), nullable=True, index=True)
+    article_title = Column(String(500), nullable=True)
+
+    # Content
+    article_content = Column(Text, nullable=True)  # Full article text (limited)
+    content_length = Column(Integer, nullable=True)  # Character count
+
+    # Agent Analysis Results
+    sentiment = Column(String(50), nullable=True)  # POSITIVE, NEGATIVE, NEUTRAL
+    sentiment_score = Column(Float, nullable=True)  # 0.0-1.0
+    toxicity_score = Column(Float, nullable=True)  # 0-100
+
+    # Content Analysis
+    propaganda_detected = Column(JSON, nullable=True)  # List of propaganda techniques
+    misinformation_likelihood = Column(Float, nullable=True)  # 0-100%
+    entities = Column(JSON, nullable=True)  # List of extracted entities with scores
+    sensationalism_score = Column(Float, nullable=True)  # 0-100
+
+    # Bias Analysis (0-100 scale)
+    political_bias_score = Column(Float, nullable=True)  # 0-100
+    gender_bias_score = Column(Float, nullable=True)  # 0-100
+    religious_bias_score = Column(Float, nullable=True)  # 0-100
+    ideological_bias_score = Column(Float, nullable=True)  # 0-100
+    socioeconomic_bias_score = Column(Float, nullable=True)  # 0-100
+    overall_bias_score = Column(Float, nullable=True)  # 0-100
+    bias_level = Column(String(50), nullable=True)  # LOW, MEDIUM, HIGH, CRITICAL
+
+    # Bot Analysis
+    bot_probability = Column(Float, nullable=True)  # 0-100%
+    authenticity_score = Column(Float, nullable=True)  # 0-100%
+
+    # Misinformation Analysis
+    misinformation_risk = Column(Float, nullable=True)  # 0-100
+    unverified_claims_count = Column(Integer, nullable=True)
+    emotional_manipulation_score = Column(Float, nullable=True)  # 0-100
+    emotional_intensity = Column(String(50), nullable=True)  # LOW, MEDIUM, HIGH, CRITICAL
+
+    # Trust & Risk Assessment
+    trust_score = Column(Float, nullable=True)  # 0-100 (dynamic calculation)
+    risk_level = Column(String(50), nullable=True)  # LOW, MEDIUM, HIGH, CRITICAL
+
+    # Synthesis & Review
+    full_report_summary = Column(Text, nullable=True)  # Natural language summary
+    reviewer_approved = Column(Integer, default=0)  # 0 or 1
+    approval_iteration = Column(Integer, nullable=True)  # Which iteration approved
+    quality_score = Column(Float, nullable=True)  # 0.0-1.0 from reviewer
+
+    # Raw Analysis Data (for audit trail)
+    raw_agent_findings = Column(JSON, nullable=True)  # All agent outputs
+    reflection_loop_details = Column(JSON, nullable=True)  # Iteration history
+
+    # Timestamps
+    analysis_timestamp = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Vector embedding (for future similarity search)
+    content_embedding = Column(Vector(1536), nullable=True)
+
+    __table_args__ = (
+        Index('idx_news_analyses_url', 'article_url'),
+        Index('idx_news_analyses_trust_score', 'trust_score'),
+        Index('idx_news_analyses_risk_level', 'risk_level'),
+        Index('idx_news_analyses_analysis_timestamp', 'analysis_timestamp'),
+    )

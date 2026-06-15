@@ -342,7 +342,9 @@ class NewsArticleAnalysis(Base):
     emotional_intensity = Column(String(50), nullable=True)  # LOW, MEDIUM, HIGH, CRITICAL
 
     # Trust & Risk Assessment
-    trust_score = Column(Float, nullable=True)  # 0-100 (dynamic calculation)
+    trust_score = Column(Float, nullable=True)  # 0-100 (Model analysis only)
+    validation_score = Column(Float, nullable=True)  # 0-100 (Cross-source verification)
+    combined_trust_score = Column(Float, nullable=True)  # 0-100 (70% model + 30% validation)
     risk_level = Column(String(50), nullable=True)  # LOW, MEDIUM, HIGH, CRITICAL
 
     # Synthesis & Review

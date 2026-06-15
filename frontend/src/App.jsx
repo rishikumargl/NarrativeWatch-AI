@@ -5,6 +5,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import AnalyzePage from './pages/AnalyzePage';
 import ResultsPage from './pages/ResultsPage';
 import HistoryPage from './pages/HistoryPage';
+import AnalyticsDashboard from './pages/AnalyticsDashboard';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/analysis/:id" element={<AnalyzePage />} />
           <Route path="/results/:id" element={<ResultsPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/analytics" element={<AnalyticsDashboard />} />
         </Routes>
       </div>
     </Router>

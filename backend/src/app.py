@@ -17,6 +17,7 @@ from src.agents.synthesis_agent import SynthesisAgent
 from src.agents.reviewer_agent import reviewer_agent
 from src.utils.url_extractor import URLExtractor
 from src.services.analysis_service import analysis_service
+from src.services.analytics_service import analytics_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -213,8 +214,9 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
                 "timestamp": datetime.utcnow().isoformat()
             })
 
-            # SYNTHESIS: Generate report
-            final_findings = await synthesis_agent.synthesize(all_findings)
+            # SYNTHESIS: Generate report with cross-source verification
+            # Pass iteration number so synthesis skips cache on retries (iteration 2-3)
+            final_findings = await synthesis_agent.synthesize(all_findings, article_url=article_url, title=article_title, article_content=article_text, iteration=iteration)
 
             # REVIEW: Validate quality
             logger.info(f"👮 Reviewer checking iteration {iteration}...")
@@ -242,7 +244,9 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
 
         # Get final data from nested findings
         findings_obj = final_findings.get("findings", {}) if final_findings else {}
-        trust_score = findings_obj.get("trust_score", 50)
+        trust_score = findings_obj.get("trust_score", 50)  # Model trust score
+        validation_score = findings_obj.get("validation_score", 0)  # Cross-source validation
+        combined_trust_score = findings_obj.get("combined_trust_score", 0)  # Combined score
         risk_level = findings_obj.get("risk_level", "UNKNOWN")
         summary = findings_obj.get("summary", "")
 
@@ -275,13 +279,23 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
         # SEND RESULT
         if approved:
             logger.info(f"🎉 Analysis approved and complete!")
+            # Extract all metric findings
+            synthesis_findings = findings_obj
             await websocket.send_json({
                 "type": "ANALYSIS_COMPLETE",
                 "analysis_id": analysis_id,
                 "trust_score": trust_score,
+                "validation_score": validation_score,
+                "combined_trust_score": combined_trust_score,
                 "risk_level": risk_level,
                 "summary": summary,
-                "all_findings": all_findings,
+                # Send synthesis findings directly so frontend can access them
+                "all_findings": {
+                    "synthesis": {
+                        "findings": synthesis_findings
+                    },
+                    **all_findings  # Keep raw findings too
+                },
                 "reflection_loop": {
                     "approved": True,
                     "iteration": iteration,
@@ -292,12 +306,26 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
             })
         else:
             logger.error(f"⚠️ Analysis rejected after {max_iterations} attempts - sending fallback")
+            synthesis_findings = findings_obj
             await websocket.send_json({
                 "type": "ANALYSIS_FALLBACK",
                 "analysis_id": analysis_id,
                 "message": "⚠️ After 3 review attempts, the system could not generate a satisfactory analysis. Please try with a different article or check the content quality.",
+                "trust_score": trust_score,
+                "validation_score": validation_score,
+                "combined_trust_score": combined_trust_score,
+                "risk_level": risk_level,
+                "summary": summary or "Unable to generate detailed analysis after 3 attempts.",
+                "all_findings": {
+                    "synthesis": {
+                        "findings": synthesis_findings
+                    },
+                    **all_findings
+                },
                 "fallback": {
                     "trust_score": trust_score,
+                    "validation_score": validation_score,
+                    "combined_trust_score": combined_trust_score,
                     "risk_level": risk_level,
                     "summary": summary or "Unable to generate detailed analysis after 3 attempts."
                 },
@@ -352,6 +380,52 @@ async def get_statistics():
     """Get analysis statistics."""
     stats = analysis_service.get_statistics()
     return stats
+
+@app.delete("/api/v1/analysis/{analysis_id}")
+async def delete_analysis(analysis_id: str):
+    """Delete an analysis by ID."""
+    success = analysis_service.delete_analysis(analysis_id)
+    if success:
+        return {"success": True, "message": f"Analysis {analysis_id} deleted"}
+    return {"success": False, "error": "Analysis not found"}
+
+@app.get("/api/v1/analytics/dashboard")
+async def get_dashboard():
+    """Get dashboard summary and key metrics."""
+    return {
+        "summary": analytics_service.get_dashboard_summary(),
+        "metrics": analytics_service.get_metric_averages()
+    }
+
+@app.get("/api/v1/analytics/trust-distribution")
+async def get_trust_distribution():
+    """Get trust score distribution."""
+    return analytics_service.get_trust_score_distribution()
+
+@app.get("/api/v1/analytics/risk-distribution")
+async def get_risk_distribution():
+    """Get risk level distribution."""
+    return analytics_service.get_risk_distribution()
+
+@app.get("/api/v1/analytics/sentiment-distribution")
+async def get_sentiment_distribution():
+    """Get sentiment breakdown."""
+    return analytics_service.get_sentiment_distribution()
+
+@app.get("/api/v1/analytics/trust-by-category")
+async def get_trust_by_category(days: int = 30):
+    """Get average trust score by article category."""
+    return analytics_service.get_trust_by_category(days=days)
+
+@app.get("/api/v1/analytics/top-sources")
+async def get_top_sources(limit: int = 10):
+    """Get most analyzed sources with stats."""
+    return analytics_service.get_top_sources(limit=limit)
+
+@app.get("/api/v1/analytics/trust-over-time")
+async def get_trust_over_time(days: int = 30):
+    """Get trust score trend over time."""
+    return analytics_service.get_trust_over_time(days=days)
 
 @app.get("/api/v1/models")
 async def get_models():

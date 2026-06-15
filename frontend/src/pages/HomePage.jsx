@@ -102,33 +102,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24 animate-fade-in" style={{animationDelay: '0.6s'}}>
-          <div className="relative group bg-gray-900/30 backdrop-blur border-2 border-gray-800/50 rounded-lg p-8 hover:border-blue-500/50 hover:bg-gray-800/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-2 hover:scale-105">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-300"></div>
-            <div className="relative">
-              <div className="text-7xl font-black text-blue-400 mb-4">90.25%</div>
-              <div className="text-gray-300 text-lg font-semibold">Accuracy Rate</div>
-              <p className="text-gray-400 text-sm mt-3">7 HuggingFace ML Models</p>
-            </div>
-          </div>
-          <div className="relative group bg-gray-900/30 backdrop-blur border-2 border-gray-800/50 rounded-lg p-8 hover:border-purple-500/50 hover:bg-gray-800/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:-translate-y-2 hover:scale-105">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-300"></div>
-            <div className="relative">
-              <div className="text-7xl font-black text-purple-400 mb-4">~1.2s</div>
-              <div className="text-gray-300 text-lg font-semibold">Analysis Speed</div>
-              <p className="text-gray-400 text-sm mt-3">4 Agents in Parallel</p>
-            </div>
-          </div>
-          <div className="relative group bg-gray-900/30 backdrop-blur border-2 border-gray-800/50 rounded-lg p-8 hover:border-pink-500/50 hover:bg-gray-800/40 transition-all duration-300 hover:shadow-lg hover:shadow-pink-500/20 hover:-translate-y-2 hover:scale-105">
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-300"></div>
-            <div className="relative">
-              <div className="text-7xl font-black text-pink-400 mb-4">⚡</div>
-              <div className="text-gray-300 text-lg font-semibold">Real-time Updates</div>
-              <p className="text-gray-400 text-sm mt-3">WebSocket Streaming</p>
-            </div>
-          </div>
-        </div>
 
         {/* Features Section */}
         <div className="mb-24">
@@ -190,13 +163,22 @@ export default function HomePage() {
         <div className="mt-32 text-center animate-fade-in" style={{animationDelay: '1.2s'}}>
           <h3 className="text-2xl font-bold text-white mb-4">Ready to analyze your first article?</h3>
           <p className="text-gray-400 mb-8">Create a project and start detecting misinformation in seconds</p>
-          <button
-            onClick={() => navigate('/projects')}
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 group"
-          >
-            Launch Dashboard
-            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          <div className="flex justify-center gap-4 flex-wrap">
+            <button
+              onClick={() => navigate('/projects')}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 group"
+            >
+              Launch Dashboard
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button
+              onClick={() => navigate('/analytics')}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-green-500/50 transition-all duration-300 group"
+            >
+              📊 View Analytics
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
         </div>
       </main>
 

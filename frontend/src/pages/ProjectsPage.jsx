@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Trash2, Calendar, TrendingUp, Search, Filter, Clock } from 'lucide-react';
+import { Plus, Play, Trash2, Calendar, TrendingUp, Search, Filter, Clock, ArrowLeft, BarChart3 } from 'lucide-react';
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
@@ -10,21 +10,67 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null, title: '' });
 
-  // Load projects from localStorage
+  // Load projects from localStorage AND database
   useEffect(() => {
-    const loadProjects = () => {
+    const loadProjects = async () => {
+      // Load from localStorage first
       const saved = localStorage.getItem('narrativewatch_projects');
       if (saved) {
         setProjects(JSON.parse(saved));
+      }
+
+      // Then fetch history from database API
+      try {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/api/v1/history?limit=100`);
+        if (response.ok) {
+          const data = await response.json();
+          const dbAnalyses = data.analyses.map(a => ({
+            id: a.analysis_id,
+            title: a.article_title || 'Untitled Article',
+            content: a.article_url ? a.article_url.substring(0, 100) : 'Unknown source',
+            fullContent: '',
+            url: a.article_url || '',
+            status: 'completed',
+            createdAt: a.analysis_timestamp,
+            trustScore: a.trust_score,  // Model trust score
+            validationScore: a.validation_score,  // Cross-source validation
+            combinedTrustScore: a.combined_trust_score,  // Combined score
+            riskLevel: a.risk_level,
+            summary: a.article_title,
+            sentiment: a.sentiment,
+            biasScore: a.overall_bias_score,
+            botProbability: a.bot_probability,
+            misinformationRisk: a.misinformation_risk,
+            qualityScore: a.quality_score,
+            approved: a.reviewer_approved
+          }));
+
+          // Merge with localStorage projects, prioritizing database records
+          const merged = [...dbAnalyses];
+          if (saved) {
+            const localProjects = JSON.parse(saved);
+            localProjects.forEach(local => {
+              if (!merged.find(m => m.id === local.id)) {
+                merged.push(local);
+              }
+            });
+          }
+
+          setProjects(merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        }
+      } catch (error) {
+        console.error('Failed to fetch history from database:', error);
+        // Fall back to localStorage only
       }
     };
 
     loadProjects();
 
-    // Reload when page comes into focus
-    window.addEventListener('focus', loadProjects);
-    return () => window.removeEventListener('focus', loadProjects);
+    // Don't reload on focus - it will re-populate deleted projects from database
+    // Users can manually refresh if needed
   }, []);
 
   // Save projects to localStorage
@@ -69,14 +115,58 @@ export default function ProjectsPage() {
     navigate(`/analysis/${newProject.id}`, { state: { project: newProject } });
   };
 
-  const handleDeleteProject = (id) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      setProjects(projects.filter(p => p.id !== id));
+  const handleDeleteClick = (id, title) => {
+    setDeleteConfirm({ show: true, id, title });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { id } = deleteConfirm;
+
+    console.log('🗑️ Deleting project with ID:', id);
+
+    // Delete from local state immediately
+    const updatedProjects = projects.filter(project => project.id !== id);
+    setProjects(updatedProjects);
+
+    // Also update localStorage for persistence
+    const localStorageProjects = updatedProjects.filter(p => p.status !== 'completed');
+    localStorage.setItem('narrativewatch_projects', JSON.stringify(localStorageProjects));
+
+    // Try to delete from database (for completed analyses)
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      console.log('📡 Attempting to delete from database:', `${apiUrl}/api/v1/analysis/${id}`);
+
+      const response = await fetch(`${apiUrl}/api/v1/analysis/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      console.log('📡 Backend response:', data);
+
+      if (response.ok && data.success) {
+        console.log('✅ Project deleted from database successfully');
+      } else {
+        console.warn('⚠️ Backend reported failure:', data.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.warn('⚠️ Database delete failed (non-critical):', error.message);
     }
+
+    setDeleteConfirm({ show: false, id: null, title: '' });
+    console.log('✅ Project deleted. Remaining projects:', updatedProjects.length);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirm({ show: false, id: null, title: '' });
   };
 
   const filteredProjects = projects.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const title = p.title || '';
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || p.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -106,19 +196,37 @@ export default function ProjectsPage() {
       </div>
 
       {/* Top navigation */}
-      <nav className="relative z-10 border-b border-gray-800/30 bg-gray-900/20 backdrop-blur-md sticky top-0">
+      <nav className="z-10 border-b border-gray-800/30 bg-gray-900/20 backdrop-blur-md sticky top-0">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Projects</h1>
-            <p className="text-gray-400 text-sm">Manage your analysis projects</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors"
+              title="Go back to home"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Projects</h1>
+              <p className="text-gray-400 text-sm">Manage your analysis projects</p>
+            </div>
           </div>
-          <button
-            onClick={() => setShowNewProject(!showNewProject)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 group"
-          >
-            <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            New Project
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/analytics')}
+              className="flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-gray-300 font-semibold transition-all duration-300 hover:border-green-500/50 group"
+            >
+              <BarChart3 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              Analytics
+            </button>
+            <button
+              onClick={() => setShowNewProject(!showNewProject)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 group"
+            >
+              <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              New Project
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -291,21 +399,60 @@ export default function ProjectsPage() {
                     </div>
                   )}
 
-                  {/* Trust Score */}
+                  {/* Trust Scores */}
                   {project.trustScore !== null && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-sm">Trust Score</span>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-gray-700 rounded-full w-16 overflow-hidden">
-                          <div
-                            className={`h-full transition-all ${project.trustScore >= 70 ? 'bg-green-500' : project.trustScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                            style={{width: `${project.trustScore}%`}}
-                          ></div>
+                    <div className="space-y-2">
+                      {/* Model Trust Score */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400 text-sm">Model Trust</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-gray-700 rounded-full w-12 overflow-hidden">
+                            <div
+                              className={`h-full transition-all ${project.trustScore >= 70 ? 'bg-blue-500' : project.trustScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                              style={{width: `${project.trustScore}%`}}
+                            ></div>
+                          </div>
+                          <span className={`font-bold text-xs ${getRiskColor(project.trustScore)}`}>
+                            {project.trustScore}/100
+                          </span>
                         </div>
-                        <span className={`font-bold text-sm ${getRiskColor(project.trustScore)}`}>
-                          {project.trustScore}/100
-                        </span>
                       </div>
+
+                      {/* Validation Score */}
+                      {project.validationScore !== null && project.validationScore !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-sm">Validation</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-gray-700 rounded-full w-12 overflow-hidden">
+                              <div
+                                className={`h-full transition-all ${project.validationScore >= 70 ? 'bg-cyan-500' : project.validationScore >= 50 ? 'bg-blue-500' : 'bg-gray-500'}`}
+                                style={{width: `${Math.min(project.validationScore, 100)}%`}}
+                              ></div>
+                            </div>
+                            <span className="font-bold text-xs text-cyan-400">
+                              {Math.round(project.validationScore)}/100
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Combined Score */}
+                      {project.combinedTrustScore !== null && project.combinedTrustScore !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400 text-sm">Combined</span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-gray-700 rounded-full w-12 overflow-hidden">
+                              <div
+                                className={`h-full transition-all ${project.combinedTrustScore >= 70 ? 'bg-indigo-500' : project.combinedTrustScore >= 50 ? 'bg-purple-500' : 'bg-pink-500'}`}
+                                style={{width: `${Math.min(project.combinedTrustScore, 100)}%`}}
+                              ></div>
+                            </div>
+                            <span className="font-bold text-xs text-indigo-400">
+                              {Math.round(project.combinedTrustScore)}/100
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -340,7 +487,7 @@ export default function ProjectsPage() {
                     {project.status === 'analyzing' ? 'View' : 'Analyze'}
                   </button>
                   <button
-                    onClick={() => handleDeleteProject(project.id)}
+                    onClick={() => handleDeleteClick(project.id, project.title)}
                     className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 font-semibold rounded-lg transition-colors group/btn"
                   >
                     <Trash2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
@@ -351,6 +498,47 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-gray-900 border border-red-500/30 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-red-500/20 animate-fade-in">
+            {/* Header */}
+            <div className="mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-red-500/20 rounded-lg mb-4">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Delete Project?</h3>
+              <p className="text-gray-400">
+                Are you sure you want to delete <span className="text-red-300 font-semibold">{deleteConfirm.title}</span>? This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Warning */}
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-6">
+              <p className="text-sm text-red-300">
+                This will permanently delete the project and all its analysis data.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                className="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-red-500/30"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeIn {

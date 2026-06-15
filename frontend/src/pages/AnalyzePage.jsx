@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { Zap, CheckCircle2, AlertCircle, Loader, BarChart3, ArrowRight } from 'lucide-react';
+import { Zap, CheckCircle2, AlertCircle, Loader, BarChart3, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function AnalyzePage() {
   const { id } = useParams();
@@ -113,6 +113,8 @@ export default function AnalyzePage() {
             });
             setAnalysisResult({
               trustScore: data.fallback?.trust_score || 50,
+              validationScore: data.fallback?.validation_score || 0,
+              combinedTrustScore: data.fallback?.combined_trust_score || 0,
               riskLevel: data.fallback?.risk_level || 'UNKNOWN',
               summary: data.fallback?.summary || 'Fallback analysis unable to complete full assessment.',
               reflectionLoop: data.reflection_loop,
@@ -121,14 +123,31 @@ export default function AnalyzePage() {
             });
             setIsComplete(true);
           } else if (data.type === 'ANALYSIS_COMPLETE') {
+            const synthesisFindings = data.all_findings?.synthesis?.findings || {};
             setAnalysisResult({
               trustScore: data.trust_score,
+              validationScore: data.validation_score,
+              combinedTrustScore: data.combined_trust_score,
               riskLevel: data.risk_level,
               accuracy: data.accuracy,
-              findings: data.all_findings,
               summary: data.summary,
+              crossSourceVerification: synthesisFindings.cross_source_verification,
               reflectionLoop: data.reflection_loop,
-              timestamp: data.timestamp
+              timestamp: data.timestamp,
+
+              // All detailed findings
+              findings: {
+                sentiment: synthesisFindings.sentiment,
+                toxicity_score: synthesisFindings.toxicity_score,
+                bias_score: synthesisFindings.bias_score,
+                bot_probability: synthesisFindings.bot_probability,
+                propaganda_score: synthesisFindings.propaganda_score,
+                emotional_manipulation: synthesisFindings.emotional_manipulation,
+                unverified_risk: synthesisFindings.unverified_risk,
+                article_category: synthesisFindings.article_category,
+                source_credibility: synthesisFindings.source_credibility,
+                ...data.all_findings  // Include all other findings
+              }
             });
             setIsComplete(true);
 
@@ -172,7 +191,7 @@ export default function AnalyzePage() {
 
         ws.onerror = (error) => {
           console.error('❌ WebSocket error:', error);
-          setError('WebSocket error');
+          // setError('WebSocket error');
         };
 
         ws.onclose = () => {
@@ -237,9 +256,18 @@ export default function AnalyzePage() {
       {/* Top Navigation */}
       <nav className="relative z-10 border-b border-gray-800/30 bg-gray-900/20 backdrop-blur-md sticky top-0">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{project?.title || id || 'Analysis'}</h1>
-            <p className="text-gray-400 text-sm mt-1">{isComplete ? 'Analysis Complete' : 'Analyzing in progress...'}</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/projects')}
+              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors"
+              title="Go back to projects"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">{project?.title || id || 'Analysis'}</h1>
+              <p className="text-gray-400 text-sm mt-1">{isComplete ? 'Analysis Complete' : 'Analyzing in progress...'}</p>
+            </div>
           </div>
           <div className="text-right">
             <p className="text-gray-400 text-sm">Status: <span className={`font-semibold ${isComplete ? 'text-green-400' : 'text-blue-400'}`}>{isComplete ? 'Complete' : 'Processing'}</span></p>
@@ -452,11 +480,11 @@ export default function AnalyzePage() {
           <div>
             {isComplete && analysisResult && (
               <div className="sticky top-24 space-y-6">
-                {/* Trust Score Card */}
+                {/* Model Trust Score Card */}
                 <div className={`bg-gradient-to-br ${getTrustScoreColor(analysisResult.trustScore).bg} rounded-xl p-8 text-center`}>
-                  <p className="text-white/80 text-sm mb-2">Trust Score</p>
+                  <p className="text-white/80 text-sm mb-2">Model Trust Score</p>
                   <div className="text-6xl font-bold text-white mb-2">{analysisResult.trustScore}</div>
-                  <p className="text-white/90 font-semibold">{getTrustScoreColor(analysisResult.trustScore).label}</p>
+                  <p className="text-white/90 font-semibold text-xs">{getTrustScoreColor(analysisResult.trustScore).label}</p>
 
                   {/* Score Ring */}
                   <div className="mt-6 relative w-24 h-24 mx-auto">
@@ -476,6 +504,23 @@ export default function AnalyzePage() {
                   </div>
                 </div>
 
+                {/* Validation & Combined Scores */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Cross-Source Validation */}
+                  <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-6 text-center">
+                    <p className="text-white/80 text-xs mb-2">Cross-Source</p>
+                    <div className="text-4xl font-bold text-white mb-1">{analysisResult.validationScore || 0}</div>
+                    <p className="text-white/80 text-xs">Validation</p>
+                  </div>
+
+                  {/* Combined Trust Score */}
+                  <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-6 text-center">
+                    <p className="text-white/80 text-xs mb-2">Combined</p>
+                    <div className="text-4xl font-bold text-white mb-1">{analysisResult.combinedTrustScore || 0}</div>
+                    <p className="text-white/80 text-xs">Trust Score</p>
+                  </div>
+                </div>
+
                 {/* Risk Level Card */}
                 <div className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6">
                   <h3 className="text-white font-semibold mb-4">Risk Assessment</h3>
@@ -484,9 +529,15 @@ export default function AnalyzePage() {
                   </div>
 
                   {/* Detailed Breakdown */}
-                  <div className="mt-4 space-y-3 text-sm text-gray-300">
+                  <div className="mt-4 space-y-2 text-sm text-gray-300">
                     <div className="bg-gray-800/30 p-3 rounded-lg">
-                      <p className="text-gray-400">Trust Score: <span className="text-white font-semibold">{analysisResult.trustScore || 50}/100</span></p>
+                      <p className="text-gray-400">Model Trust: <span className="text-blue-300 font-semibold">{analysisResult.trustScore || 50}/100</span></p>
+                    </div>
+                    <div className="bg-gray-800/30 p-3 rounded-lg">
+                      <p className="text-gray-400">Validation: <span className="text-cyan-300 font-semibold">{analysisResult.validationScore || 0}/100</span></p>
+                    </div>
+                    <div className="bg-gray-800/30 p-3 rounded-lg">
+                      <p className="text-gray-400">Combined: <span className="text-indigo-300 font-semibold">{analysisResult.combinedTrustScore || 0}/100</span></p>
                     </div>
                     {analysisResult.findings && (
                       <>
@@ -507,6 +558,102 @@ export default function AnalyzePage() {
                   </div>
                 </div>
 
+                {/* Cross-Source Verification Results */}
+                {analysisResult.findings?.cross_source_verification && (
+                  <div className="mt-6 border-t border-gray-700/50 pt-6">
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-full">
+                          <h4 className="text-lg font-bold text-blue-300 mb-4">🔍 Cross-Source Verification</h4>
+
+                          {/* Confidence Score with Status */}
+                          <div className="mb-5">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-gray-300">Verification Confidence</span>
+                              <span className="text-blue-300 font-bold text-lg">{analysisResult.findings.cross_source_verification.confidence_score}%</span>
+                            </div>
+                            <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all ${
+                                  analysisResult.findings.cross_source_verification.confidence_score >= 75 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                                  analysisResult.findings.cross_source_verification.confidence_score >= 50 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                  'bg-gradient-to-r from-red-400 to-red-500'
+                                }`}
+                                style={{width: `${analysisResult.findings.cross_source_verification.confidence_score}%`}}
+                              />
+                            </div>
+                            <div className="mt-2 flex justify-between items-center">
+                              <span className="text-xs text-gray-400">
+                                {analysisResult.findings.cross_source_verification.confidence_score >= 75 ? '✅ VERY HIGH' :
+                                 analysisResult.findings.cross_source_verification.confidence_score >= 50 ? '🟡 HIGH' :
+                                 analysisResult.findings.cross_source_verification.confidence_score >= 25 ? '⚠️ MEDIUM' :
+                                 '❌ LOW'}
+                              </span>
+                              <span className="text-xs text-blue-300">{analysisResult.findings.cross_source_verification.verified ? '✓ Verified' : '✗ Not Verified'}</span>
+                            </div>
+                          </div>
+
+                          {/* Verification Details */}
+                          {analysisResult.findings.cross_source_verification.verification_details?.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-gray-400 text-xs mb-2 uppercase font-semibold">Verification Factors:</p>
+                              <div className="space-y-1">
+                                {analysisResult.findings.cross_source_verification.verification_details.map((detail, idx) => (
+                                  <p key={idx} className="text-gray-300 text-xs">{detail}</p>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Sources Found */}
+                          <div className="mb-4 bg-gray-800/30 p-3 rounded-lg border border-gray-700/30">
+                            <p className="text-gray-300 mb-2">
+                              📊 Sources Reporting: <span className="text-blue-300 font-semibold text-lg">{analysisResult.findings.cross_source_verification.total_sources_reporting}</span>
+                            </p>
+                            <p className="text-gray-400 text-xs">Articles found from other outlets covering this story</p>
+                          </div>
+
+                          {/* Matching Sources List */}
+                          {analysisResult.findings.cross_source_verification.matching_sources?.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-gray-400 text-sm mb-3 font-semibold">Similar Coverage From:</p>
+                              <div className="space-y-3">
+                                {analysisResult.findings.cross_source_verification.matching_sources.slice(0, 3).map((source, idx) => (
+                                  <div key={idx} className="bg-gray-800/50 p-3 rounded-lg border border-gray-700/30 hover:border-blue-500/30 transition-colors">
+                                    <div className="flex items-start justify-between gap-3 mb-1">
+                                      <p className="text-blue-300 font-semibold text-sm">{source.source}</p>
+                                      {source.published_at && (
+                                        <span className="text-gray-500 text-xs whitespace-nowrap">
+                                          {new Date(source.published_at).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-gray-300 text-xs leading-relaxed mb-2">{source.title}</p>
+                                    {source.description && (
+                                      <p className="text-gray-400 text-xs line-clamp-2">{source.description}</p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Recommendation Box */}
+                          <div className={`p-4 rounded-lg border ${
+                            analysisResult.findings.cross_source_verification.confidence_score >= 75
+                              ? 'bg-green-500/10 border-green-500/30'
+                              : analysisResult.findings.cross_source_verification.confidence_score >= 50
+                              ? 'bg-yellow-500/10 border-yellow-500/30'
+                              : 'bg-red-500/10 border-red-500/30'
+                          }`}>
+                            <p className="text-gray-300 text-sm font-semibold mb-1">💡 Recommendation</p>
+                            <p className="text-gray-300 text-sm">{analysisResult.findings.cross_source_verification.recommendation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* View Report Button */}
                 <button

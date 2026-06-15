@@ -4,6 +4,7 @@ import logging
 import requests
 from bs4 import BeautifulSoup
 from newspaper import Article
+import trafilatura
 from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ class URLExtractor:
     @staticmethod
     async def extract_article(url: str) -> Dict[str, str]:
         """
-        Extract article content from URL
+        Extract article content from URL with 3 fallback strategies
 
         Returns:
             {
@@ -26,15 +27,98 @@ class URLExtractor:
             }
         """
         try:
-            logger.info(f"Extracting article from URL: {url}")
+            logger.info(f"🔗 Extracting article from URL: {url}")
 
-            # Try newspaper3k first (best for news articles)
+            # Strategy 1: Try Trafilatura (best for news articles)
+            logger.info("📖 Strategy 1: Trying Trafilatura...")
+            result = URLExtractor._extract_with_trafilatura(url)
+            if result["success"]:
+                logger.info(f"✅ Trafilatura extracted {len(result['content'])} chars")
+                return result
+
+            # Strategy 2: Try newspaper3k (fallback)
+            logger.warning("⚠️ Trafilatura failed, trying newspaper3k...")
+            result = URLExtractor._extract_with_newspaper(url)
+            if result["success"]:
+                logger.info(f"✅ newspaper3k extracted {len(result['content'])} chars")
+                return result
+
+            # Strategy 3: Try BeautifulSoup (last resort)
+            logger.warning("⚠️ newspaper3k failed, trying BeautifulSoup...")
+            result = URLExtractor._extract_with_beautifulsoup(url)
+            if result["success"]:
+                logger.info(f"✅ BeautifulSoup extracted {len(result['content'])} chars")
+                return result
+
+            # All failed - return error with URL text
+            logger.error(f"❌ All extraction methods failed for {url}")
+            return {
+                "title": "Article Extraction Failed",
+                "content": f"Could not extract content from {url}. URL may be blocked or invalid.",
+                "author": "Unknown",
+                "publish_date": "Unknown",
+                "success": False
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Critical error in URL extraction: {str(e)}")
+            return {
+                "title": "Article Extraction Error",
+                "content": f"Error extracting from {url}: {str(e)}",
+                "author": "Unknown",
+                "publish_date": "Unknown",
+                "success": False
+            }
+
+    @staticmethod
+    def _extract_with_trafilatura(url: str) -> Dict[str, str]:
+        """Extract using Trafilatura (best for news articles)"""
+        try:
+            logger.info(f"Trafilatura: Fetching {url}")
+            downloaded = trafilatura.fetch_url(url)
+            if not downloaded:
+                logger.warning(f"Trafilatura: Failed to fetch {url}")
+                return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}
+
+            result = trafilatura.extract(downloaded, include_comments=False, with_metadata=True)
+            if not result:
+                logger.warning(f"Trafilatura: No content extracted from {url}")
+                return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}
+
+            # Get metadata
+            metadata = trafilatura.extract_metadata(downloaded)
+
+            content = trafilatura.extract(downloaded, include_comments=False)
+            title = metadata.title if metadata and metadata.title else "No Title"
+            author = metadata.author if metadata and metadata.author else "Unknown"
+            date = str(metadata.date) if metadata and metadata.date else "Unknown"
+
+            if content and len(content) > 100:
+                logger.info(f"✅ Trafilatura success: {len(content)} chars")
+                return {
+                    "title": title,
+                    "content": content,
+                    "author": author,
+                    "publish_date": date,
+                    "success": True
+                }
+            return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}
+
+        except Exception as e:
+            logger.debug(f"Trafilatura error: {str(e)}")
+            return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}
+
+    @staticmethod
+    def _extract_with_newspaper(url: str) -> Dict[str, str]:
+        """Extract using newspaper3k"""
+        try:
+            logger.info(f"newspaper3k: Fetching {url}")
             article = Article(url)
             article.download()
             article.parse()
 
             if article.text and len(article.text) > 100:
-                logger.info(f"✅ Successfully extracted {len(article.text)} chars from {url}")
+                logger.info(f"✅ newspaper3k success: {len(article.text)} chars")
                 return {
                     "title": article.title or "No Title",
                     "content": article.text,
@@ -42,14 +126,11 @@ class URLExtractor:
                     "publish_date": str(article.publish_date) if article.publish_date else "Unknown",
                     "success": True
                 }
-
-            # Fallback to BeautifulSoup if newspaper3k fails
-            logger.warning("Newspaper3k extraction failed, trying BeautifulSoup...")
-            return URLExtractor._extract_with_beautifulsoup(url)
+            return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}
 
         except Exception as e:
-            logger.error(f"Error extracting from URL: {str(e)}")
-            return URLExtractor._extract_with_beautifulsoup(url)
+            logger.debug(f"newspaper3k error: {str(e)}")
+            return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}
 
     @staticmethod
     def _extract_with_beautifulsoup(url: str) -> Dict[str, str]:
@@ -62,6 +143,20 @@ class URLExtractor:
             response.raise_for_status()
 
             soup = BeautifulSoup(response.content, 'html.parser')
+
+            # Extract meta tags as minimal fallback
+            meta_title = soup.find('meta', property='og:title')
+            meta_description = soup.find('meta', property='og:description')
+
+            if meta_title and meta_description:
+                logger.info("📋 Extracted from meta tags (og:title, og:description)")
+                return {
+                    "title": meta_title.get('content', ''),
+                    "content": meta_description.get('content', ''),
+                    "author": "Unknown",
+                    "publish_date": "Unknown",
+                    "success": True
+                }
 
             # Remove script and style elements
             for script in soup(['script', 'style']):
@@ -110,27 +205,15 @@ class URLExtractor:
                 logger.info(f"✅ BeautifulSoup extracted {len(content)} chars from {url}")
                 return {
                     "title": title,
-                    "content": content[:5000],  # Limit to 5000 chars
+                    "content": content,
                     "author": "Unknown",
                     "publish_date": "Unknown",
                     "success": True
                 }
             else:
                 logger.warning(f"❌ Could not extract meaningful content from {url}")
-                return {
-                    "title": "Unable to extract",
-                    "content": f"Could not extract article content from: {url}",
-                    "author": "Unknown",
-                    "publish_date": "Unknown",
-                    "success": False
-                }
+                return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}
 
         except Exception as e:
             logger.error(f"BeautifulSoup extraction failed: {str(e)}")
-            return {
-                "title": "Error",
-                "content": f"Error extracting from URL: {str(e)}",
-                "author": "Unknown",
-                "publish_date": "Unknown",
-                "success": False
-            }
+            return {"success": False, "content": "", "title": "", "author": "", "publish_date": ""}

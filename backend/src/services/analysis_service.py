@@ -54,7 +54,9 @@ class AnalysisService:
 
             # Synthesis results
             synthesis_findings = analysis_data.get("synthesis", {}).get("findings", {})
-            trust_score = synthesis_findings.get("trust_score", 0)
+            trust_score = synthesis_findings.get("trust_score", 0)  # Model trust score
+            validation_score = synthesis_findings.get("validation_score", 0)  # Cross-source validation
+            combined_trust_score = synthesis_findings.get("combined_trust_score", 0)  # Combined score
             risk_level = synthesis_findings.get("risk_level", "UNKNOWN")
             full_report_summary = synthesis_findings.get("summary", "")
 
@@ -97,7 +99,9 @@ class AnalysisService:
                 emotional_manipulation_score=emotional_manipulation.get("manipulation_score", 0),
                 emotional_intensity=emotional_manipulation.get("emotional_intensity", "LOW"),
                 # Trust & Risk
-                trust_score=trust_score,
+                trust_score=trust_score,  # Model trust score
+                validation_score=validation_score,  # Cross-source validation
+                combined_trust_score=combined_trust_score,  # Combined score
                 risk_level=risk_level,
                 # Synthesis & Review
                 full_report_summary=full_report_summary,
@@ -114,10 +118,49 @@ class AnalysisService:
                 analysis_timestamp=datetime.utcnow(),
             )
 
-            db.add(analysis_record)
-            db.commit()
+            # Check if analysis already exists
+            existing = db.query(NewsArticleAnalysis).filter_by(analysis_id=analysis_id).first()
 
-            logger.info(f"✅ Analysis saved to database: {analysis_id}")
+            if existing:
+                # Update existing record
+                logger.info(f"📝 Updating existing analysis: {analysis_id}")
+                for key, value in {
+                    'article_url': article_url,
+                    'article_title': article_title,
+                    'article_content': article_content[:3000] if article_content else None,
+                    'content_length': len(article_content) if article_content else 0,
+                    'sentiment': sentiment,
+                    'sentiment_score': sentiment_score,
+                    'toxicity_score': toxicity_score,
+                    'propaganda_detected': json.dumps(propaganda) if propaganda else None,
+                    'misinformation_likelihood': misinformation_likelihood,
+                    'entities': json.dumps(entities) if entities else None,
+                    'overall_bias_score': overall_bias_score,
+                    'bias_level': bias_level,
+                    'bot_probability': bot_probability,
+                    'authenticity_score': authenticity_score,
+                    'misinformation_risk': misinformation_risk,
+                    'emotional_manipulation_score': emotional_manipulation.get('manipulation_score', 0) if emotional_manipulation else 0,
+                    'trust_score': trust_score,
+                    'validation_score': validation_score,
+                    'combined_trust_score': combined_trust_score,
+                    'risk_level': risk_level,
+                    'full_report_summary': full_report_summary,
+                    'reviewer_approved': reviewer_approved,
+                    'approval_iteration': approval_iteration,
+                    'quality_score': quality_score,
+                    'raw_agent_findings': json.dumps(analysis_data),
+                    'updated_at': datetime.utcnow()
+                }.items():
+                    setattr(existing, key, value)
+                db.commit()
+            else:
+                # Insert new record
+                db.add(analysis_record)
+                db.commit()
+                logger.info(f"✨ Analysis saved to database: {analysis_id}")
+
+            logger.info(f"✅ Analysis processed: {analysis_id}")
             return True
 
         except Exception as e:
@@ -144,7 +187,9 @@ class AnalysisService:
                     "analysis_id": a.analysis_id,
                     "article_url": a.article_url,
                     "article_title": a.article_title,
-                    "trust_score": a.trust_score,
+                    "trust_score": a.trust_score,  # Model trust score
+                    "validation_score": a.validation_score,  # Cross-source validation
+                    "combined_trust_score": a.combined_trust_score,  # Combined score
                     "risk_level": a.risk_level,
                     "sentiment": a.sentiment,
                     "overall_bias_score": a.overall_bias_score,
@@ -193,7 +238,9 @@ class AnalysisService:
                 "authenticity_score": analysis.authenticity_score,
                 "misinformation_risk": analysis.misinformation_risk,
                 "emotional_manipulation_score": analysis.emotional_manipulation_score,
-                "trust_score": analysis.trust_score,
+                "trust_score": analysis.trust_score,  # Model trust score
+                "validation_score": analysis.validation_score,  # Cross-source validation
+                "combined_trust_score": analysis.combined_trust_score,  # Combined score
                 "risk_level": analysis.risk_level,
                 "full_report_summary": analysis.full_report_summary,
                 "reviewer_approved": bool(analysis.reviewer_approved),
@@ -240,6 +287,35 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Failed to get statistics: {str(e)}")
             return {}
+        finally:
+            if db:
+                db.close()
+
+    @staticmethod
+    def delete_analysis(analysis_id: str) -> bool:
+        """Delete an analysis by ID."""
+        db = None
+        try:
+            db = SessionLocal()
+            analysis = db.query(NewsArticleAnalysis).filter(
+                NewsArticleAnalysis.analysis_id == analysis_id
+            ).first()
+
+            if not analysis:
+                logger.warning(f"Analysis not found: {analysis_id}")
+                return False
+
+            db.delete(analysis)
+            db.commit()
+
+            logger.info(f"✅ Analysis deleted: {analysis_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to delete analysis: {str(e)}")
+            if db:
+                db.rollback()
+            return False
         finally:
             if db:
                 db.close()

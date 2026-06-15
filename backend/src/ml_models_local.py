@@ -3,6 +3,13 @@ import logging
 from transformers import pipeline
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import torch
+import numpy as np
+
+# Set seeds GLOBALLY for deterministic results
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+np.random.seed(42)
 
 logger = logging.getLogger(__name__)
 executor = ThreadPoolExecutor(max_workers=2)
@@ -12,6 +19,7 @@ class LocalMLModels:
 
     def __init__(self):
         logger.info("Initializing local ML models...")
+        logger.info("Using deterministic seeds for reproducibility")
 
         try:
             # Sentiment analysis - fast and accurate
@@ -26,13 +34,14 @@ class LocalMLModels:
             self.sentiment_pipeline = None
 
         try:
-            # Zero-shot classification for bias detection
+            # Zero-shot classification for bias detection (deterministic)
+            # Seed already set globally above
             self.zero_shot = pipeline(
                 "zero-shot-classification",
                 model="facebook/bart-large-mnli",
                 device=-1
             )
-            logger.info("Bias detection model loaded")
+            logger.info("Bias detection model loaded (deterministic mode)")
         except Exception as e:
             logger.error(f"Failed to load bias model: {e}")
             self.zero_shot = None
@@ -92,7 +101,8 @@ class LocalMLModels:
                 lambda: self.zero_shot(
                     text[:512],
                     ["biased", "neutral"],
-                    multi_class=False
+                    multi_class=False,
+                    top_k=None  # Disable top-k sampling for deterministic results
                 )
             )
 
@@ -186,7 +196,8 @@ class LocalMLModels:
                 lambda: self.zero_shot(
                     text[:512],
                     ["toxic", "clean"],
-                    multi_class=False
+                    multi_class=False,
+                    top_k=None  # Disable top-k sampling for deterministic results
                 )
             )
 
@@ -215,7 +226,8 @@ class LocalMLModels:
                 lambda: self.zero_shot(
                     text[:512],
                     ["misinformation", "credible"],
-                    multi_class=False
+                    multi_class=False,
+                    top_k=None  # Disable top-k sampling for deterministic results
                 )
             )
 
@@ -242,7 +254,8 @@ class LocalMLModels:
                 lambda: self.zero_shot(
                     text[:512],
                     ["propaganda", "neutral"],
-                    multi_class=False
+                    multi_class=False,
+                    top_k=None  # Disable top-k sampling for deterministic results
                 )
             )
 
@@ -269,7 +282,8 @@ class LocalMLModels:
                 lambda: self.zero_shot(
                     text[:512],
                     ["offensive", "appropriate"],
-                    multi_class=False
+                    multi_class=False,
+                    top_k=None  # Disable top-k sampling for deterministic results
                 )
             )
 

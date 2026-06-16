@@ -16,21 +16,52 @@ export default function ProjectsPage() {
     const loadProjects = async () => {
       const saved = localStorage.getItem('narrativewatch_projects');
       const localProjects = saved ? JSON.parse(saved) : [];
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      let allProjects = [];
 
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+        // Fetch completed analyses from /api/v1/history
+        const historyResponse = await fetch(`${apiUrl}/api/v1/history?limit=100`);
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          const completedAnalyses = (historyData.analyses || []).map(a => ({
+            id: a.analysis_id,
+            title: a.article_title || 'Untitled Article',
+            content: a.article_url ? a.article_url.substring(0, 100) : 'Unknown source',
+            fullContent: a.article_content || '',
+            url: a.article_url || '',
+            status: 'completed',
+            createdAt: a.analysis_timestamp,
+            trustScore: a.trust_score,
+            validationScore: a.validation_score,
+            combinedTrustScore: a.combined_trust_score,
+            riskLevel: a.risk_level,
+            summary: a.article_title,
+            sentiment: a.sentiment,
+            biasScore: a.overall_bias_score,
+            botProbability: a.bot_probability,
+            misinformationRisk: a.misinformation_risk,
+            qualityScore: a.quality_score,
+            approved: a.reviewer_approved
+          }));
+          allProjects = [...completedAnalyses];
+        }
+      } catch (error) {
+        console.error('Failed to fetch history:', error);
+      }
 
-        // Try to fetch projects from /api/projects first
-        const response = await fetch(`${apiUrl}/api/projects`);
-        if (response.ok) {
-          const dbProjects = await response.json();
+      try {
+        // Fetch projects from /api/projects
+        const projectsResponse = await fetch(`${apiUrl}/api/projects`);
+        if (projectsResponse.ok) {
+          const dbProjects = await projectsResponse.json();
           const converted = dbProjects.map(p => ({
             id: p.id.toString(),
             title: p.name || 'Untitled Project',
             content: p.description || 'No description',
             fullContent: p.description || '',
             url: '',
-            status: 'completed',
+            status: 'analyzing',
             createdAt: p.created_at,
             trustScore: null,
             validationScore: null,
@@ -39,25 +70,27 @@ export default function ProjectsPage() {
             summary: p.description
           }));
 
-          // Merge with local projects, prioritizing DB records
-          const merged = [...converted];
-          localProjects.forEach(local => {
-            if (!merged.find(m => m.id === local.id)) {
-              merged.push(local);
+          // Add projects that aren't already in completed analyses
+          converted.forEach(project => {
+            if (!allProjects.find(p => p.id === project.id)) {
+              allProjects.push(project);
             }
           });
-
-          setProjects(merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-          return;
         }
       } catch (error) {
-        console.error('Failed to fetch projects from API:', error);
+        console.error('Failed to fetch projects:', error);
       }
 
-      // Fallback to localStorage only
-      if (localProjects.length > 0) {
-        setProjects(localProjects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-      }
+      // Merge with local projects
+      localProjects.forEach(local => {
+        if (!allProjects.find(p => p.id === local.id)) {
+          allProjects.push(local);
+        }
+      });
+
+      // Sort by date
+      allProjects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setProjects(allProjects);
     };
 
     loadProjects();

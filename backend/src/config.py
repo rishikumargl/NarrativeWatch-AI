@@ -21,5 +21,8 @@ class Config:
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     MAX_REFLECTION_ITERATIONS = int(os.getenv("MAX_REFLECTION_ITERATIONS", 3))
     AGENT_TIMEOUT = int(os.getenv("AGENT_TIMEOUT", 300))
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+    JWT_ALGORITHM = "HS256"
+    TOKEN_EXPIRE_DAYS = int(os.getenv("TOKEN_EXPIRE_DAYS", 7))
 
 config = Config()

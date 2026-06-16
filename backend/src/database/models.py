@@ -2,12 +2,30 @@
 
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import Column, String, Text, Integer, Float, DateTime, JSON, Index, ForeignKey
+from sqlalchemy import Column, String, Text, Integer, Float, DateTime, JSON, Index, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
+
+
+class User(Base):
+    """User account with authentication credentials."""
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    username = Column(String(100), nullable=True)
+    password_hash = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    analyses = relationship("NewsArticleAnalysis", back_populates="user", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
 
 
 class InstagramPost(Base):
@@ -306,6 +324,7 @@ class NewsArticleAnalysis(Base):
     analysis_id = Column(String(255), primary_key=True, index=True)
     article_url = Column(String(1000), nullable=True, index=True)
     article_title = Column(String(500), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Content
     article_content = Column(Text, nullable=True)  # Full article text (limited)
@@ -365,11 +384,15 @@ class NewsArticleAnalysis(Base):
     # Vector embedding (for future similarity search)
     content_embedding = Column(Vector(1536), nullable=True)
 
+    # Relationship
+    user = relationship("User", back_populates="analyses")
+
     __table_args__ = (
         Index('idx_news_analyses_url', 'article_url'),
         Index('idx_news_analyses_trust_score', 'trust_score'),
         Index('idx_news_analyses_risk_level', 'risk_level'),
         Index('idx_news_analyses_analysis_timestamp', 'analysis_timestamp'),
+        Index('idx_news_analyses_user_id', 'user_id'),
     )
 
 
@@ -380,11 +403,12 @@ class Document(Base):
 
     # Primary key
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Document metadata
     title = Column(String(500), nullable=False, index=True)
     content = Column(Text, nullable=False)
-    source_url = Column(String(1000), nullable=False, unique=True, index=True)
+    source_url = Column(String(1000), nullable=False, index=True)
     source_domain = Column(String(255), nullable=False, index=True)
 
     # Article metadata
@@ -404,8 +428,12 @@ class Document(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Relationship
+    user = relationship("User", back_populates="documents")
+
     __table_args__ = (
         Index('idx_documents_source_domain', 'source_domain'),
         Index('idx_documents_category', 'category'),
         Index('idx_documents_ingestion_timestamp', 'ingestion_timestamp'),
+        Index('idx_documents_user_id', 'user_id'),
     )

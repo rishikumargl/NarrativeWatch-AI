@@ -24,6 +24,7 @@ from src.services.context_combiner import ContextCombiner
 from src.services.cross_source_verification import cross_source_verification
 from src.api.document_routes import upload_document, upload_batch_documents, get_document_statistics
 from src.api.document_routes import DocumentUploadRequest, BatchDocumentUploadRequest
+from src.api.auth_routes import router as auth_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,6 +42,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include auth routes
+app.include_router(auth_router)
 
 class AnalysisRequest(BaseModel):
     url: str = None

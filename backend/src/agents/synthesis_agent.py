@@ -139,10 +139,10 @@ class SynthesisAgent:
         return detected_category
 
     def calculate_trust_score(self, findings: dict, article_category: str = 'general') -> int:
-        """Calculate dynamic trust score (0-100) from real agent findings with category-aware penalties"""
+        """Calculate dynamic trust score (0-100) from real agent findings with balanced category-aware penalties"""
 
-        # Start with very high baseline - articles are trustworthy by default
-        trust_score = 95  # High baseline: only penalize for actual issues found
+        # High baseline for ~80 average - allows natural variance
+        trust_score = 85  # High baseline: good articles stay around 80-90
 
         logger.info(f"📊 Calculating trust score from findings keys: {list(findings.keys())}")
         logger.info(f"📁 Using category-aware penalties for: {article_category}")
@@ -152,56 +152,64 @@ class SynthesisAgent:
         if content:
             logger.info(f"✅ Content Analyzer data found: {list(content.keys())}")
 
-            # Penalize high toxicity (minimal penalty - articles start at 95)
+            # Penalize toxicity - LIGHT weights for ~80 average
             toxicity = content.get("toxicity", {}).get("toxicity_score", 0)
             if toxicity > 0:
-                # Adjust toxicity penalty by category - MINIMAL weights
+                # Adjust toxicity penalty by category - very light
                 if article_category in ['sports', 'war', 'breaking_news']:
-                    toxicity_weight = 0.05  # Minimal penalty for these categories
+                    toxicity_weight = 0.08  # Very low penalty
                 elif article_category in ['entertainment']:
-                    toxicity_weight = 0.08  # Low penalty for entertainment
+                    toxicity_weight = 0.1  # Low penalty
                 else:
-                    toxicity_weight = 0.1  # Minimal penalty for other categories
+                    toxicity_weight = 0.12  # Light penalty
 
                 toxicity_penalty = int(toxicity * toxicity_weight)
                 trust_score -= toxicity_penalty
                 logger.info(f"   Toxicity penalty: -{toxicity_penalty} (score={toxicity}, weight={toxicity_weight}, category={article_category})")
 
-            # Penalize misinfo - MINIMAL weight
+            # Penalize misinformation - LIGHT weight
             misinfo = content.get("misinformation", {}).get("misinformation_likelihood", 0)
             if misinfo > 0:
-                misinfo_penalty = int(misinfo * 0.05)  # Minimal penalty
+                misinfo_penalty = int(misinfo * 0.1)  # Light penalty
                 trust_score -= misinfo_penalty
                 logger.info(f"   Misinfo penalty: -{misinfo_penalty} (score={misinfo})")
 
-            # Sentiment (minimal penalty - high baseline means articles stay positive)
+            # Sentiment penalties - VERY LIGHT
             sentiment = content.get("sentiment", {}).get("label", "NEUTRAL")
             if sentiment == "NEGATIVE":
-                # Only slight penalty for negative sentiment
-                if article_category not in ['war', 'breaking_news']:
-                    trust_score -= 1  # Minimal penalty
-                    logger.info(f"   Sentiment penalty: -1 (NEGATIVE)")
-                else:
+                # Very light penalty for negative sentiment
+                if article_category in ['war', 'breaking_news']:
                     logger.info(f"   Sentiment penalty: 0 (NEGATIVE but expected for {article_category})")
+                elif article_category in ['entertainment', 'sports']:
+                    trust_score -= 1  # Minimal penalty
+                    logger.info(f"   Sentiment penalty: -1 (NEGATIVE in {article_category})")
+                else:
+                    trust_score -= 2  # Light penalty
+                    logger.info(f"   Sentiment penalty: -2 (NEGATIVE in {article_category})")
             elif sentiment == "POSITIVE":
-                # No penalty for positive sentiment (articles with high baseline should be positive)
-                logger.info(f"   Sentiment penalty: 0 (POSITIVE - neutral at 95 baseline)")
+                # Bonus for positive sentiment
+                if article_category in ['entertainment', 'sports']:
+                    trust_score += 3  # Bonus for expected positivity
+                    logger.info(f"   Sentiment bonus: +3 (POSITIVE in {article_category})")
+                else:
+                    trust_score += 2  # Bonus for positive tone
+                    logger.info(f"   Sentiment bonus: +2 (POSITIVE in {article_category})")
         else:
             logger.warning("⚠️  No Content Analyzer data found in findings")
 
-        # Bias Detector findings (minimal penalty at 95 baseline)
+        # Bias Detector findings - LIGHT category-aware penalties
         bias = findings.get("bias_detector", {}).get("findings", {}).get("bias_analysis", {})
         if bias:
             logger.info(f"✅ Bias Detector data found: {list(bias.keys())}")
             bias_score = bias.get("overall_bias_score", 0)
             if bias_score > 0:
-                # Category-aware bias penalties - MINIMAL
+                # Category-aware bias penalties - very light
                 if article_category in ['sports', 'entertainment']:
-                    bias_weight = 0.05  # All articles have some bias, acceptable for these
+                    bias_weight = 0.08  # Very low penalty (expected bias in these)
                 elif article_category in ['breaking_news']:
-                    bias_weight = 0.08
+                    bias_weight = 0.1   # Low penalty
                 else:
-                    bias_weight = 0.1  # Minimal penalty
+                    bias_weight = 0.12  # Light penalty for politics/general
 
                 bias_penalty = int(bias_score * bias_weight)
                 trust_score -= bias_penalty
@@ -209,31 +217,31 @@ class SynthesisAgent:
         else:
             logger.warning("⚠️  No Bias Detector data found in findings")
 
-        # Bot Detector findings - MINIMAL PENALTY
+        # Bot Detector findings - MODERATE penalty (bot content is always suspicious)
         bot = findings.get("bot_detector", {}).get("findings", {}).get("bot_analysis", {})
         if bot:
             logger.info(f"✅ Bot Detector data found: {list(bot.keys())}")
             bot_prob = bot.get("bot_probability", 0)
             if bot_prob > 0:
-                bot_penalty = int(bot_prob * 0.05)  # Minimal penalty
+                bot_penalty = int(bot_prob * 0.15)  # Moderate penalty for bot detection
                 trust_score -= bot_penalty
                 logger.info(f"   Bot penalty: -{bot_penalty} (prob={bot_prob}%)")
         else:
             logger.warning("⚠️  No Bot Detector data found in findings")
 
-        # Misinformation Detector findings - MINIMAL PENALTIES at 95 baseline
+        # Misinformation Detector findings - LIGHT category-aware penalties
         misinfo_det = findings.get("misinformation_detector", {}).get("findings", {}).get("misinformation_analysis", {})
         if misinfo_det:
             logger.info(f"✅ Misinformation Detector data found: {list(misinfo_det.keys())}")
             final_score = misinfo_det.get("final_misinformation_score", 0)
             if final_score > 0:
-                # Adjust emotional manipulation penalty by category - MINIMAL WEIGHTS
+                # Adjust misinformation penalty by category - very light
                 if article_category in ['entertainment', 'sports']:
-                    misinfo_weight = 0.02  # Minimal penalty for expected emotional content
+                    misinfo_weight = 0.08  # Very low penalty for these
                 elif article_category in ['breaking_news']:
-                    misinfo_weight = 0.04  # Low for breaking news
+                    misinfo_weight = 0.1   # Low penalty
                 else:
-                    misinfo_weight = 0.05  # Minimal penalty for other categories
+                    misinfo_weight = 0.12  # Light penalty for politics/general
 
                 misinfo_penalty = int(final_score * misinfo_weight)
                 trust_score -= misinfo_penalty

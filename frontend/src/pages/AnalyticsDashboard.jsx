@@ -179,6 +179,33 @@ export default function AnalyticsDashboard() {
     }
   };
 
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: 'easeOut' }
+    }
+  };
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: -40 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: 'easeOut' }
+    }
+  };
+
+  const listItemVariants = {
+    hidden: { opacity: 0, x: -30 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.5, ease: 'easeOut' }
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden">
       {/* Background animations */}
@@ -288,12 +315,22 @@ export default function AnalyticsDashboard() {
             {/* Trust Score Distribution */}
             <motion.div
               variants={chartVariants}
-              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-blue-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.8 }}>
+                  <BarChart3 className="w-5 h-5" />
+                </motion.div>
                 Trust Score Distribution
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={trustDistData}>
                   <defs>
@@ -314,13 +351,23 @@ export default function AnalyticsDashboard() {
             {/* Risk Level Distribution */}
             <motion.div
               variants={chartVariants}
-              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
               transition={{ delay: 0.2 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-orange-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div whileHover={{ scale: 1.2 }} transition={{ duration: 0.3 }}>
+                  <TrendingUp className="w-5 h-5" />
+                </motion.div>
                 Risk Level Distribution
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -347,13 +394,23 @@ export default function AnalyticsDashboard() {
             {/* Sentiment Distribution */}
             <motion.div
               variants={chartVariants}
-              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
               transition={{ delay: 0.3 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-green-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <PieIcon className="w-5 h-5" />
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
+                  <PieIcon className="w-5 h-5" />
+                </motion.div>
                 Sentiment Breakdown
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -380,13 +437,23 @@ export default function AnalyticsDashboard() {
             {/* Category Trust Scores */}
             <motion.div
               variants={chartVariants}
-              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
               transition={{ delay: 0.4 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-purple-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.65, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
+                  <BarChart3 className="w-5 h-5" />
+                </motion.div>
                 Trust by Category
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData}>
                   <defs>
@@ -415,11 +482,22 @@ export default function AnalyticsDashboard() {
             {/* Bot Detection Radar */}
             <motion.div
               variants={chartVariants}
-              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-indigo-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                🤖 Bot Detection Analysis
-              </h3>
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                  🤖
+                </motion.span>
+                Bot Detection Analysis
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <RadarChart data={botDetectionData}>
                   <PolarGrid stroke="#374151" />
@@ -434,12 +512,23 @@ export default function AnalyticsDashboard() {
             {/* Misinformation Risk */}
             <motion.div
               variants={chartVariants}
-              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
               transition={{ delay: 0.2 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-red-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                ⚠️ Misinformation Risk Distribution
-              </h3>
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                  ⚠️
+                </motion.span>
+                Misinformation Risk Distribution
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -467,12 +556,23 @@ export default function AnalyticsDashboard() {
             {/* Entity Frequency */}
             <motion.div
               variants={chartVariants}
-              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
               transition={{ delay: 0.3 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-yellow-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                🏆 Top Entities Mentioned
-              </h3>
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                  🏆
+                </motion.span>
+                Top Entities Mentioned
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart
                   data={entityData}
@@ -498,12 +598,23 @@ export default function AnalyticsDashboard() {
             {trustTrend && trustTrend.length > 0 && (
               <motion.div
                 variants={chartVariants}
-                className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
+                className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-pink-500/30 transition-all duration-300"
               >
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  📈 Article Volume Timeline
-                </h3>
+                <motion.h3
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.65, duration: 0.5 }}
+                  className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
+                  <motion.span animate={{ rotate: [0, -10, 10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                    📈
+                  </motion.span>
+                  Article Volume Timeline
+                </motion.h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={trustTrend}>
                     <defs>
@@ -535,12 +646,21 @@ export default function AnalyticsDashboard() {
             <motion.div
               variants={chartVariants}
               initial="hidden"
-              animate="visible"
-              className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 mb-8 card-hover"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 mb-8 card-hover hover:border-blue-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                📉 Trust Score Trend (30 Days)
-              </h3>
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ rotate: 180 }} transition={{ duration: 2, repeat: Infinity }}>
+                  📉
+                </motion.span>
+                Trust Score Trend (30 Days)
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={trustTrend}>
                   <defs>
@@ -581,10 +701,21 @@ export default function AnalyticsDashboard() {
             <motion.div
               variants={chartVariants}
               initial="hidden"
-              animate="visible"
-              className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-cyan-500/30 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">🔗 Top Sources</h3>
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4"
+              >
+                <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                  🔗
+                </motion.span>
+                {' '}Top Sources
+              </motion.h3>
               <motion.div
                 className="space-y-3"
                 variants={containerVariants}
@@ -594,18 +725,43 @@ export default function AnalyticsDashboard() {
                 {topSources.map((source, idx) => (
                   <motion.div
                     key={idx}
-                    variants={itemVariants}
-                    className="bg-gray-800/30 rounded-lg p-4 flex justify-between items-center hover:bg-gray-800/50 transition-colors"
+                    variants={listItemVariants}
+                    custom={idx}
+                    transition={{ delay: idx * 0.1 }}
+                    whileHover={{ x: 10, boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)' }}
+                    className="bg-gray-800/30 rounded-lg p-4 flex justify-between items-center hover:bg-gray-800/50 transition-colors border border-gray-700/30 hover:border-blue-500/50"
                   >
                     <div>
-                      <p className="text-white font-semibold">{source.source}</p>
-                      <p className="text-gray-400 text-sm">{source.article_count} articles analyzed</p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 + idx * 0.1 }}
+                        className="text-white font-semibold"
+                      >
+                        {source.source}
+                      </motion.p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 + idx * 0.1 }}
+                        className="text-gray-400 text-sm"
+                      >
+                        {source.article_count} articles analyzed
+                      </motion.p>
                     </div>
                     <motion.div
                       className="text-right"
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <p className="text-2xl font-bold text-blue-400">{source.average_trust_score}</p>
+                      <motion.p
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 + idx * 0.1 }}
+                        className="text-2xl font-bold text-blue-400"
+                      >
+                        {source.average_trust_score}
+                      </motion.p>
                       <p className="text-gray-400 text-xs">avg trust</p>
                     </motion.div>
                   </motion.div>

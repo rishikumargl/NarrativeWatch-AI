@@ -50,36 +50,8 @@ export default function ProjectsPage() {
         console.error('Failed to fetch history:', error);
       }
 
-      try {
-        // Fetch projects from /api/projects
-        const projectsResponse = await fetch(`${apiUrl}/api/projects`);
-        if (projectsResponse.ok) {
-          const dbProjects = await projectsResponse.json();
-          const converted = dbProjects.map(p => ({
-            id: p.id.toString(),
-            title: p.name || 'Untitled Project',
-            content: p.description || 'No description',
-            fullContent: p.description || '',
-            url: '',
-            status: 'analyzing',
-            createdAt: p.created_at,
-            trustScore: null,
-            validationScore: null,
-            combinedTrustScore: null,
-            riskLevel: null,
-            summary: p.description
-          }));
-
-          // Add projects that aren't already in completed analyses
-          converted.forEach(project => {
-            if (!allProjects.find(p => p.id === project.id)) {
-              allProjects.push(project);
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch projects:', error);
-      }
+      // Only show completed analyses, not draft projects
+      // Draft projects are in /api/projects but we only want to show analyses with results
 
       // Merge with local projects
       localProjects.forEach(local => {

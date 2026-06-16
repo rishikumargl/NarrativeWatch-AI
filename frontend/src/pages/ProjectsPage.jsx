@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Trash2, Calendar, TrendingUp, Search, Filter, Clock, ArrowLeft, BarChart3 } from 'lucide-react';
+import { Plus, Play, Trash2, Calendar, TrendingUp, Search, Filter, Clock, ArrowLeft, BarChart3, Upload } from 'lucide-react';
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
@@ -212,6 +212,13 @@ export default function ProjectsPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/documents')}
+              className="flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-gray-300 font-semibold transition-all duration-300 hover:border-purple-500/50 group"
+            >
+              <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              Upload Docs
+            </button>
             <button
               onClick={() => navigate('/analytics')}
               className="flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-gray-300 font-semibold transition-all duration-300 hover:border-green-500/50 group"

@@ -24,8 +24,24 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
-    analyses = relationship("NewsArticleAnalysis", back_populates="user", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
+
+
+class Project(Base):
+    """Project for organizing articles and analyses."""
+
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index('idx_projects_created_at', 'created_at'),
+    )
 
 
 class InstagramPost(Base):
@@ -324,7 +340,6 @@ class NewsArticleAnalysis(Base):
     analysis_id = Column(String(255), primary_key=True, index=True)
     article_url = Column(String(1000), nullable=True, index=True)
     article_title = Column(String(500), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Content
     article_content = Column(Text, nullable=True)  # Full article text (limited)

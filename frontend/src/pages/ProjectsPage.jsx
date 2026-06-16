@@ -15,50 +15,48 @@ export default function ProjectsPage() {
   useEffect(() => {
     const loadProjects = async () => {
       const saved = localStorage.getItem('narrativewatch_projects');
-      if (saved) {
-        setProjects(JSON.parse(saved));
-      }
+      const localProjects = saved ? JSON.parse(saved) : [];
 
       try {
         const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/api/v1/history?limit=100`);
+
+        // Try to fetch projects from /api/projects first
+        const response = await fetch(`${apiUrl}/api/projects`);
         if (response.ok) {
-          const data = await response.json();
-          const dbAnalyses = data.analyses.map(a => ({
-            id: a.analysis_id,
-            title: a.article_title || 'Untitled Article',
-            content: a.article_url ? a.article_url.substring(0, 100) : 'Unknown source',
-            fullContent: '',
-            url: a.article_url || '',
+          const dbProjects = await response.json();
+          const converted = dbProjects.map(p => ({
+            id: p.id.toString(),
+            title: p.name || 'Untitled Project',
+            content: p.description || 'No description',
+            fullContent: p.description || '',
+            url: '',
             status: 'completed',
-            createdAt: a.analysis_timestamp,
-            trustScore: a.trust_score,
-            validationScore: a.validation_score,
-            combinedTrustScore: a.combined_trust_score,
-            riskLevel: a.risk_level,
-            summary: a.article_title,
-            sentiment: a.sentiment,
-            biasScore: a.overall_bias_score,
-            botProbability: a.bot_probability,
-            misinformationRisk: a.misinformation_risk,
-            qualityScore: a.quality_score,
-            approved: a.reviewer_approved
+            createdAt: p.created_at,
+            trustScore: null,
+            validationScore: null,
+            combinedTrustScore: null,
+            riskLevel: null,
+            summary: p.description
           }));
 
-          const merged = [...dbAnalyses];
-          if (saved) {
-            const localProjects = JSON.parse(saved);
-            localProjects.forEach(local => {
-              if (!merged.find(m => m.id === local.id)) {
-                merged.push(local);
-              }
-            });
-          }
+          // Merge with local projects, prioritizing DB records
+          const merged = [...converted];
+          localProjects.forEach(local => {
+            if (!merged.find(m => m.id === local.id)) {
+              merged.push(local);
+            }
+          });
 
           setProjects(merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+          return;
         }
       } catch (error) {
-        console.error('Failed to fetch history from database:', error);
+        console.error('Failed to fetch projects from API:', error);
+      }
+
+      // Fallback to localStorage only
+      if (localProjects.length > 0) {
+        setProjects(localProjects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       }
     };
 

@@ -2,6 +2,7 @@
 
 import logging
 import hashlib
+import json
 from typing import Dict, List, Optional
 from datetime import datetime
 from sqlalchemy import text
@@ -190,6 +191,9 @@ class DocumentIngestionService:
                 RETURNING id
             """)
 
+            # Convert tags list to JSON if present
+            tags_json = json.dumps(tags) if tags else None
+
             result = self.db.execute(query, {
                 "title": title,
                 "content": content,
@@ -198,7 +202,7 @@ class DocumentIngestionService:
                 "author": author,
                 "publish_date": publish_date,
                 "category": category,
-                "tags": tags,
+                "tags": tags_json,
                 "document_hash": doc_hash,
                 "embedding": embedding,
                 "timestamp": datetime.utcnow()

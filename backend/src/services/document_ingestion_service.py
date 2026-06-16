@@ -70,7 +70,7 @@ class DocumentIngestionService:
         publish_date: Optional[str] = None,
         category: Optional[str] = None,
         tags: Optional[List[str]] = None,
-        use_semantic_chunks: bool = True
+        use_semantic_chunks: bool = False
     ) -> Dict:
         """
         Ingest a news document into the RAG system with optional semantic chunking.
@@ -122,17 +122,18 @@ class DocumentIngestionService:
 
             # Apply semantic chunking if enabled
             chunks = []
+            chunks_created = 0
             if use_semantic_chunks:
-                chunks = semantic_chunk_by_paragraphs(content)
-                logger.info(f"Created {len(chunks)} semantic chunks from document")
+                try:
+                    chunks = semantic_chunk_by_paragraphs(content)
+                    logger.info(f"Created {len(chunks)} semantic chunks from document")
+                except Exception as e:
+                    logger.warning(f"Failed to chunk document: {e}")
+                    chunks = []
 
-            # For full document embedding, use original content
-            # For chunk-based RAG, we'll embed each chunk separately
+            # Generate embedding for full document (graceful fallback)
             embedding = None
             embedding_stored = False
-            chunks_created = 0
-
-            # Try to embed full document (graceful fallback if unavailable)
             try:
                 if self.embedding_client and hasattr(self.embedding_client, 'embed_text'):
                     embedding = self.embedding_client.embed_text(content)
@@ -143,7 +144,7 @@ class DocumentIngestionService:
                 logger.warning(f"Failed to embed full document: {e}")
                 embedding_stored = False
 
-            # If using chunks, store them separately for finer-grained retrieval
+            # If using chunks and chunks were created, store them
             if use_semantic_chunks and chunks:
                 try:
                     chunks_created = self._store_document_chunks(
@@ -153,7 +154,8 @@ class DocumentIngestionService:
                         source_domain=source_domain,
                         category=category
                     )
-                    logger.info(f"Stored {chunks_created} document chunks for semantic RAG")
+                    if chunks_created > 0:
+                        logger.info(f"Stored {chunks_created} document chunks for semantic RAG")
                 except Exception as e:
                     logger.warning(f"Failed to store chunks: {e}")
                     chunks_created = 0
@@ -352,7 +354,7 @@ class DocumentIngestionService:
                     publish_date=doc.get("publish_date"),
                     category=doc.get("category"),
                     tags=doc.get("tags"),
-                    use_semantic_chunks=doc.get("use_semantic_chunks", True)
+                    use_semantic_chunks=doc.get("use_semantic_chunks", False)
                 )
 
                 if result["success"]:

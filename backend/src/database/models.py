@@ -399,15 +399,11 @@ class NewsArticleAnalysis(Base):
     # Vector embedding (for future similarity search)
     content_embedding = Column(Vector(1536), nullable=True)
 
-    # Relationship
-    user = relationship("User", back_populates="analyses")
-
     __table_args__ = (
         Index('idx_news_analyses_url', 'article_url'),
         Index('idx_news_analyses_trust_score', 'trust_score'),
         Index('idx_news_analyses_risk_level', 'risk_level'),
         Index('idx_news_analyses_analysis_timestamp', 'analysis_timestamp'),
-        Index('idx_news_analyses_user_id', 'user_id'),
     )
 
 

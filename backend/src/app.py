@@ -18,6 +18,14 @@ from src.agents.reviewer_agent import reviewer_agent
 from src.utils.url_extractor import URLExtractor
 from src.services.analysis_service import analysis_service
 from src.services.analytics_service import analytics_service
+from src.services.url_data_extractor import URLDataExtractor
+from src.services.rag_context_service import RAGContextService
+from src.services.context_combiner import ContextCombiner
+from src.services.cross_source_verification import cross_source_verification
+from src.api.document_routes import upload_document, upload_batch_documents, get_document_statistics
+from src.api.document_routes import DocumentUploadRequest, BatchDocumentUploadRequest
+from src.api.auth_routes import router as auth_router
+from src.api.project_routes import router as project_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +43,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(auth_router)
+app.include_router(project_router)
 
 class AnalysisRequest(BaseModel):
     url: str = None
@@ -73,6 +85,25 @@ async def health():
         "timestamp": datetime.utcnow().isoformat()
     }
 
+# ============================================================================
+# DOCUMENT INGESTION ENDPOINTS (RAG System)
+# ============================================================================
+
+@app.post("/api/v1/documents/upload")
+async def ingest_document(request: DocumentUploadRequest):
+    """Upload a single news document for RAG ingestion."""
+    return await upload_document(request)
+
+@app.post("/api/v1/documents/upload-batch")
+async def ingest_batch(request: BatchDocumentUploadRequest):
+    """Upload multiple news documents for RAG ingestion."""
+    return await upload_batch_documents(request)
+
+@app.get("/api/v1/documents/stats")
+async def document_stats():
+    """Get statistics about ingested documents."""
+    return await get_document_statistics()
+
 @app.post("/api/v1/analyze")
 async def analyze(request: AnalysisRequest):
     if not request.text and not request.url:
@@ -103,31 +134,123 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
             article_title = data.get("title", "")
             article_url = data.get("url", "")
 
-            # If URL provided, extract content from it
+            enriched_context = None
+
+            # ============================================================================
+            # STAGE 1: URL DATA EXTRACTION
+            # ============================================================================
             if article_url and (not article_text or len(article_text) < 50):
-                logger.info(f"📰 Extracting content from URL: {article_url}")
+                logger.info(f"📰 Extracting data from URL: {article_url}")
                 await websocket.send_json({
                     "type": "STATUS",
-                    "message": "Extracting article content from URL...",
+                    "message": "Stage 1: Extracting article data and entities...",
                     "timestamp": datetime.utcnow().isoformat()
                 })
 
-                extracted = await URLExtractor.extract_article(article_url)
-                if extracted.get("success"):
-                    article_text = extracted.get("content", "")
-                    article_title = extracted.get("title", "") or article_title or "News Article"
-                    logger.info(f"✅ Extracted {len(article_text)} chars from URL")
+                url_extractor = URLDataExtractor()
+                url_data = await url_extractor.extract_with_entities(article_url)
+
+                if url_data.get("success"):
+                    article_text = url_data.get("content", "")
+                    article_title = url_data.get("title", "") or article_title or "News Article"
+                    logger.info(f"✅ Extracted: {len(article_text)} chars, {url_data['entities']['total_count']} entities")
                 else:
                     logger.warning(f"❌ Failed to extract from URL: {article_url}")
-                    article_text = extracted.get("content", "Unable to extract article content")
-                    article_title = "Unable to extract"
+                    article_text = article_text or "Unable to extract article content"
+                    article_title = article_title or "Unable to extract"
+                    url_data = {
+                        "url": article_url,
+                        "title": article_title,
+                        "content": article_text,
+                        "entities": {"total_count": 0, "entities": []},
+                        "success": False
+                    }
+            else:
+                # Fallback for text-only submissions
+                if not article_text or len(article_text) < 50:
+                    article_text = "Sample news article for comprehensive analysis"
+                    article_title = article_title or "News Article"
 
-            # Fallback if still no content
-            if not article_text or len(article_text) < 50:
-                article_text = "Sample news article for comprehensive analysis"
-                article_title = article_title or "News Article"
+                url_data = {
+                    "url": article_url or "text-submission",
+                    "title": article_title,
+                    "content": article_text,
+                    "entities": {"total_count": 0, "entities": []},
+                    "success": True
+                }
 
             logger.info(f"📄 Article ready: '{article_title[:50]}...' ({len(article_text)} chars)")
+
+            # ============================================================================
+            # STAGE 2: PARALLEL RAG & NEWS API RETRIEVAL
+            # ============================================================================
+            logger.info("Fetching RAG context and news coverage...")
+            await websocket.send_json({
+                "type": "STATUS",
+                "message": "Stage 2: Retrieving historical context and cross-source coverage...",
+                "timestamp": datetime.utcnow().isoformat()
+            })
+
+            try:
+                rag_service = RAGContextService()
+                entities_for_rag = url_data.get("entities", {}).get("entities", [])
+                source_domain = url_data.get("source_domain", "unknown")
+                rag_context = await rag_service.get_enriched_context(
+                    entities=entities_for_rag,
+                    source_domain=source_domain,
+                    article_content=article_text
+                )
+                rag_service.close()
+                logger.info(f"✅ RAG context retrieved: {rag_context['total_context_items']} items")
+            except Exception as e:
+                logger.error(f"⚠️  RAG retrieval failed (non-blocking): {str(e)}")
+                rag_context = {
+                    "entity_reputation": {},
+                    "source_baseline": {"domain": url_data.get("source_domain", "unknown"), "article_count": 0},
+                    "similar_articles": [],
+                    "total_context_items": 0
+                }
+
+            try:
+                keywords = [e.get("name", "") for e in entities_for_rag[:5]]
+                news_api_results = await cross_source_verification.verify_story(
+                    title=article_title,
+                    url=article_url or "text-submission",
+                    keywords=keywords,
+                    article_content=article_text
+                )
+                logger.info(f"✅ News API verification complete: {len(news_api_results.get('matching_sources', []))} sources found")
+            except Exception as e:
+                logger.error(f"⚠️  News API verification failed (non-blocking): {str(e)}")
+                news_api_results = {
+                    "verified": False,
+                    "confidence_score": 0,
+                    "confidence_level": "UNAVAILABLE",
+                    "matching_sources": [],
+                    "verification_details": [str(e)]
+                }
+
+            # ============================================================================
+            # STAGE 3: CONTEXT COMBINATION
+            # ============================================================================
+            logger.info("Combining all context sources...")
+            await websocket.send_json({
+                "type": "STATUS",
+                "message": "Stage 3: Combining context from all sources...",
+                "timestamp": datetime.utcnow().isoformat()
+            })
+
+            try:
+                context_combiner = ContextCombiner()
+                enriched_context = context_combiner.combine_contexts(
+                    url_data=url_data,
+                    rag_context=rag_context,
+                    news_api_results=news_api_results
+                )
+                logger.info(f"✅ Context combined successfully")
+            except Exception as e:
+                logger.error(f"⚠️  Context combination failed (non-blocking): {str(e)}")
+                enriched_context = None
 
         except Exception as e:
             logger.error(f"Error receiving article: {str(e)}")
@@ -135,16 +258,27 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
             logger.error(f"Traceback: {traceback.format_exc()}")
             article_text = "Sample news article for comprehensive analysis"
             article_title = "News Article"
+            enriched_context = None
 
         all_findings = {}
-        
+
+        # ============================================================================
+        # STAGE 4: AGENT DISPATCH WITH ENRICHED CONTEXT
+        # ============================================================================
         agents_list = [
             ("content_analyzer", content_analyzer),
             ("bias_detector", bias_detector),
             ("bot_detector", bot_detector),
             ("misinformation_detector", misinformation_detector),
         ]
-        
+
+        logger.info("📡 Dispatching to agents with enriched context...")
+        await websocket.send_json({
+            "type": "STATUS",
+            "message": "Stage 4: Running 4 specialized agents with enriched context...",
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
         for agent_name, agent_instance in agents_list:
             try:
                 await websocket.send_json({
@@ -152,20 +286,21 @@ async def websocket_analyze(websocket: WebSocket, analysis_id: str):
                     "agent": agent_name,
                     "timestamp": datetime.utcnow().isoformat()
                 })
-                logger.info(f"Agent {agent_name} starting...")
+                logger.info(f"🤖 Agent {agent_name} starting with enriched context...")
 
                 try:
+                    # Call agents with enriched context parameter
                     if agent_name == "content_analyzer":
-                        result = await agent_instance.analyze(article_text, article_title)
+                        result = await agent_instance.analyze(article_text, article_title, context=enriched_context)
                     elif agent_name == "bias_detector":
-                        result = await agent_instance.detect_bias(article_text, article_title)
+                        result = await agent_instance.detect_bias(article_text, article_title, context=enriched_context)
                     elif agent_name == "bot_detector":
-                        result = await agent_instance.analyze_engagement("https://example.com", article_text)
+                        result = await agent_instance.analyze_engagement(article_url or "https://example.com", article_text, context=enriched_context)
                     elif agent_name == "misinformation_detector":
-                        result = await agent_instance.detect_misinformation(article_text, article_title)
+                        result = await agent_instance.detect_misinformation(article_text, article_title, context=enriched_context)
 
                     all_findings[agent_name] = result
-                    logger.info(f"Agent {agent_name} completed")
+                    logger.info(f"✅ Agent {agent_name} completed with context")
 
                     await websocket.send_json({
                         "type": "AGENT_COMPLETE",

@@ -14,9 +14,13 @@ class ContentAnalyzerAgent:
         self.llm = llm
         self.ml = ml
 
-    async def analyze(self, article_text: str, title: str) -> dict:
-        """Analyze article using real ML models"""
+    async def analyze(self, article_text: str, title: str, context: dict = None) -> dict:
+        """Analyze article using real ML models with optional enriched context"""
         logger.info("Content analyzer starting...")
+
+        if context:
+            logger.info(f"🔍 Using enriched context: {context.get('metadata', {}).get('total_entities', 0)} entities, "
+                       f"{context.get('news_coverage', {}).get('similar_articles_found', 0)} corroborating sources")
 
         findings = {
             "title": title,

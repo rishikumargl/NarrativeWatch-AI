@@ -13,10 +13,13 @@ class MisinformationDetector:
         self.llm = llm
         self.ml = ml
     
-    async def detect_misinformation(self, article_text: str, title: str = "") -> dict:
-        """Detect misinformation with multiple techniques"""
+    async def detect_misinformation(self, article_text: str, title: str = "", context: dict = None) -> dict:
+        """Detect misinformation with multiple techniques and optional enriched context"""
 
         logger.info("Starting misinformation detection...")
+
+        if context:
+            logger.info(f"🔍 Using enriched context: {context.get('news_coverage', {}).get('similar_articles_found', 0)} corroborating sources for fact-checking context")
 
         findings = {
             "title": title,

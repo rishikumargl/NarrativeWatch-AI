@@ -2,12 +2,46 @@
 
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import Column, String, Text, Integer, Float, DateTime, JSON, Index, ForeignKey
+from sqlalchemy import Column, String, Text, Integer, Float, DateTime, JSON, Index, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
+
+
+class User(Base):
+    """User account with authentication credentials."""
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    username = Column(String(100), nullable=True)
+    password_hash = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
+
+
+class Project(Base):
+    """Project for organizing articles and analyses."""
+
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index('idx_projects_created_at', 'created_at'),
+    )
 
 
 class InstagramPost(Base):
@@ -370,4 +404,47 @@ class NewsArticleAnalysis(Base):
         Index('idx_news_analyses_trust_score', 'trust_score'),
         Index('idx_news_analyses_risk_level', 'risk_level'),
         Index('idx_news_analyses_analysis_timestamp', 'analysis_timestamp'),
+    )
+
+
+class Document(Base):
+    """News documents ingested for RAG system."""
+
+    __tablename__ = "documents"
+
+    # Primary key
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Document metadata
+    title = Column(String(500), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    source_url = Column(String(1000), nullable=False, index=True)
+    source_domain = Column(String(255), nullable=False, index=True)
+
+    # Article metadata
+    author = Column(String(255), nullable=True)
+    publish_date = Column(String(50), nullable=True)
+    category = Column(String(100), nullable=True, index=True)  # politics, sports, war, etc.
+    tags = Column(JSON, nullable=True)  # List of tags
+
+    # Deduplication
+    document_hash = Column(String(64), nullable=False, unique=True, index=True)
+
+    # Vector embedding for semantic search
+    content_embedding = Column(Vector(1536), nullable=True)
+
+    # Timestamps
+    ingestion_timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    user = relationship("User", back_populates="documents")
+
+    __table_args__ = (
+        Index('idx_documents_source_domain', 'source_domain'),
+        Index('idx_documents_category', 'category'),
+        Index('idx_documents_ingestion_timestamp', 'ingestion_timestamp'),
+        Index('idx_documents_user_id', 'user_id'),
     )

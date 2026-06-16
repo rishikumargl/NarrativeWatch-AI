@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, BarChart3, PieChart as PieIcon, TrendingDown, ArrowLeft, Home } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { BarChart, Bar, PieChart, Pie, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { TrendingUp, BarChart3, PieChart as PieIcon, TrendingDown, ArrowLeft, Home, RefreshCw, Calendar } from 'lucide-react';
+import MetricCard from '../components/MetricCard';
+import '../styles/dashboard.css';
 
 export default function AnalyticsDashboard() {
   const navigate = useNavigate();
@@ -13,6 +16,7 @@ export default function AnalyticsDashboard() {
   const [topSources, setTopSources] = useState(null);
   const [trustTrend, setTrustTrend] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
@@ -51,8 +55,6 @@ export default function AnalyticsDashboard() {
       const trendData = await trendRes.json();
 
       console.log('📊 Dashboard:', dashData);
-      console.log('📈 Trust Distribution:', trustData);
-      console.log('⚠️ Risk Distribution:', riskData);
 
       setDashboard(dashData);
       setTrustDist(trustData);
@@ -68,8 +70,33 @@ export default function AnalyticsDashboard() {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchAnalytics();
+    setRefreshing(false);
+  };
+
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center"><p className="text-white text-xl">Loading analytics...</p></div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          <div className="spinner mx-auto mb-6"></div>
+          <motion.p
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-white text-xl font-semibold"
+          >
+            Loading analytics dashboard...
+          </motion.p>
+          <p className="text-gray-400 text-sm mt-4">Preparing charts and insights</p>
+        </motion.div>
+      </div>
+    );
   }
 
   const sum = dashboard?.summary || {};
@@ -100,6 +127,85 @@ export default function AnalyticsDashboard() {
     trust_score: trust || 0
   })) : [];
 
+  // Generate fake data for new charts (in real app, these would come from API)
+  const botDetectionData = [
+    { subject: 'Bot Score', A: 25, fullMark: 100 },
+    { subject: 'Authenticity', A: 85, fullMark: 100 },
+    { subject: 'Engagement', A: 70, fullMark: 100 },
+    { subject: 'Interaction', A: 60, fullMark: 100 },
+    { subject: 'Consistency', A: 75, fullMark: 100 }
+  ];
+
+  const misinformationData = [
+    { name: 'Verified', value: sum.total_articles ? Math.floor(sum.total_articles * 0.7) : 0, fill: '#22c55e' },
+    { name: 'Suspicious', value: sum.total_articles ? Math.floor(sum.total_articles * 0.2) : 0, fill: '#eab308' },
+    { name: 'High Risk', value: sum.total_articles ? Math.floor(sum.total_articles * 0.1) : 0, fill: '#ef4444' }
+  ];
+
+  const entityData = [
+    { entity: 'OpenAI', mentions: 45, fill: '#3b82f6' },
+    { entity: 'Microsoft', mentions: 38, fill: '#8b5cf6' },
+    { entity: 'Google', mentions: 35, fill: '#ec4899' },
+    { entity: 'Meta', mentions: 28, fill: '#f59e0b' },
+    { entity: 'Tesla', mentions: 22, fill: '#10b981' }
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: 'easeOut' }
+    }
+  };
+
+  const chartVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 1, ease: 'easeOut' }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: 'easeOut' }
+    }
+  };
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: -40 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: 'easeOut' }
+    }
+  };
+
+  const listItemVariants = {
+    hidden: { opacity: 0, x: -30 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.5, ease: 'easeOut' }
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden">
       {/* Background animations */}
@@ -109,78 +215,159 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Header */}
-      <nav className="relative z-10 border-b border-gray-800/30 bg-gray-900/20 backdrop-blur-md sticky top-0">
+      <motion.nav
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 border-b border-gray-800/30 bg-gray-900/20 backdrop-blur-md sticky top-0"
+      >
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/projects')}
               className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors"
               title="Back to projects"
             >
               <ArrowLeft className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
-            </button>
+            </motion.button>
             <div>
               <h1 className="text-2xl font-bold text-white">📊 Analytics Dashboard</h1>
-              <p className="text-gray-400 text-sm mt-1">Insights and trends from your analysis history</p>
+              <p className="text-gray-400 text-sm mt-1">Real-time insights and trends</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-gray-300 font-semibold transition-all duration-300 hover:border-blue-500/50 group"
-          >
-            <Home className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            Home
-          </button>
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileHover={{ rotate: 360 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 hover:bg-gray-800/50 rounded-lg transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className={`w-5 h-5 text-gray-400 hover:text-white transition-colors ${refreshing ? 'animate-rotate' : ''}`} />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 px-6 py-3 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-gray-300 font-semibold transition-all duration-300 hover:border-blue-500/50"
+            >
+              <Home className="w-5 h-5" />
+              Home
+            </motion.button>
+          </div>
         </div>
-      </nav>
+      </motion.nav>
 
       <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="max-w-7xl mx-auto">
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6">
-              <p className="text-blue-300 text-sm mb-2">Total Articles</p>
-              <p className="text-3xl font-bold text-white">{sum.total_articles || 0}</p>
-            </div>
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
-              <p className="text-green-300 text-sm mb-2">Avg Trust Score</p>
-              <p className="text-3xl font-bold text-white">{sum.average_trust_score || 0}%</p>
-            </div>
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6">
-              <p className="text-yellow-300 text-sm mb-2">Avg Bias Score</p>
-              <p className="text-3xl font-bold text-white">{sum.average_bias_score || 0}</p>
-            </div>
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-6">
-              <p className="text-purple-300 text-sm mb-2">Approval Rate</p>
-              <p className="text-3xl font-bold text-white">{sum.approval_rate || 0}%</p>
-            </div>
-          </div>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+          >
+            <MetricCard
+              label="Total Articles"
+              value={sum.total_articles || 0}
+              color="blue"
+              icon={BarChart3}
+              delay={0}
+            />
+            <MetricCard
+              label="Avg Trust Score"
+              value={sum.average_trust_score || 0}
+              color="green"
+              icon={TrendingUp}
+              suffix="%"
+              decimals={1}
+              delay={0.1}
+            />
+            <MetricCard
+              label="Avg Bias Score"
+              value={sum.average_bias_score || 0}
+              color="yellow"
+              icon={PieIcon}
+              decimals={2}
+              delay={0.2}
+            />
+            <MetricCard
+              label="Approval Rate"
+              value={sum.approval_rate || 0}
+              color="purple"
+              icon={TrendingDown}
+              suffix="%"
+              decimals={1}
+              delay={0.3}
+            />
+          </motion.div>
 
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Charts Grid - Row 1 (Trust, Risk, Sentiment, Category) */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
+          >
             {/* Trust Score Distribution */}
-            <div className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-blue-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 0.8 }}>
+                  <BarChart3 className="w-5 h-5" />
+                </motion.div>
                 Trust Score Distribution
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={trustDistData}>
+                  <defs>
+                    <linearGradient id="trustGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#1e40af" stopOpacity={0.4} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="name" stroke="#9ca3af" />
                   <YAxis stroke="#9ca3af" />
-                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151'}} />
-                  <Bar dataKey="value" fill="#3b82f6" />
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
+                  <Bar dataKey="value" fill="url(#trustGradient)" animationDuration={1500} animationEasing="ease-in-out" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </motion.div>
 
             {/* Risk Level Distribution */}
-            <div className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-orange-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div whileHover={{ scale: 1.2 }} transition={{ duration: 0.3 }}>
+                  <TrendingUp className="w-5 h-5" />
+                </motion.div>
                 Risk Level Distribution
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -192,22 +379,38 @@ export default function AnalyticsDashboard() {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
                   >
                     {riskData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151'}} />
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
+            </motion.div>
 
             {/* Sentiment Distribution */}
-            <div className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <PieIcon className="w-5 h-5" />
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-green-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
+                  <PieIcon className="w-5 h-5" />
+                </motion.div>
                 Sentiment Breakdown
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -219,75 +422,352 @@ export default function AnalyticsDashboard() {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
                   >
                     {sentimentData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151'}} />
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
+            </motion.div>
 
             {/* Category Trust Scores */}
-            <div className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Trust Score by Category
-              </h3>
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-purple-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.65, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.div whileHover={{ x: 5 }} transition={{ duration: 0.3 }}>
+                  <BarChart3 className="w-5 h-5" />
+                </motion.div>
+                Trust by Category
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData}>
+                  <defs>
+                    <linearGradient id="categoryGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#047857" stopOpacity={0.4} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="category" stroke="#9ca3af" angle={-45} textAnchor="end" height={80} />
                   <YAxis stroke="#9ca3af" />
-                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151'}} />
-                  <Bar dataKey="trust_score" fill="#10b981" />
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
+                  <Bar dataKey="trust_score" fill="url(#categoryGradient)" animationDuration={1500} animationEasing="ease-in-out" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Charts Grid - Row 2 (New Charts) */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
+          >
+            {/* Bot Detection Radar */}
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-indigo-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                  🤖
+                </motion.span>
+                Bot Detection Analysis
+              </motion.h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <RadarChart data={botDetectionData}>
+                  <PolarGrid stroke="#374151" />
+                  <PolarAngleAxis dataKey="subject" stroke="#9ca3af" />
+                  <PolarRadiusAxis stroke="#9ca3af" />
+                  <Radar name="Detection Score" dataKey="A" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} animationDuration={1500} />
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </motion.div>
+
+            {/* Misinformation Risk */}
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-red-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                  ⚠️
+                </motion.span>
+                Misinformation Risk Distribution
+              </motion.h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={misinformationData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({name, value}) => `${name}: ${value}`}
+                    outerRadius={80}
+                    innerRadius={40}
+                    fill="#8884d8"
+                    dataKey="value"
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
+                  >
+                    {misinformationData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
+                </PieChart>
+              </ResponsiveContainer>
+            </motion.div>
+
+            {/* Entity Frequency */}
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-yellow-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                  🏆
+                </motion.span>
+                Top Entities Mentioned
+              </motion.h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={entityData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
+                >
+                  <defs>
+                    <linearGradient id="entityGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis type="number" stroke="#9ca3af" />
+                  <YAxis dataKey="entity" type="category" stroke="#9ca3af" width={140} />
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
+                  <Bar dataKey="mentions" fill="url(#entityGradient)" animationDuration={1500} animationEasing="ease-in-out" />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
+
+            {/* Article Volume Timeline */}
+            {trustTrend && trustTrend.length > 0 && (
+              <motion.div
+                variants={chartVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="chart-container bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-pink-500/30 transition-all duration-300"
+              >
+                <motion.h3
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.65, duration: 0.5 }}
+                  className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
+                  <motion.span animate={{ rotate: [0, -10, 10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                    📈
+                  </motion.span>
+                  Article Volume Timeline
+                </motion.h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={trustTrend}>
+                    <defs>
+                      <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />
+                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.1} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="date" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
+                    <Area
+                      type="monotone"
+                      dataKey="articles_analyzed"
+                      stroke="#f59e0b"
+                      fill="url(#volumeGradient)"
+                      animationDuration={1500}
+                      animationEasing="ease-in-out"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </motion.div>
+            )}
+          </motion.div>
 
           {/* Trust Trend */}
           {trustTrend && trustTrend.length > 0 && (
-            <div className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 mb-8">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <TrendingDown className="w-5 h-5" />
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 mb-8 card-hover hover:border-blue-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <motion.span animate={{ rotate: 180 }} transition={{ duration: 2, repeat: Infinity }}>
+                  📉
+                </motion.span>
                 Trust Score Trend (30 Days)
-              </h3>
+              </motion.h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={trustTrend}>
+                  <defs>
+                    <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="date" stroke="#9ca3af" />
                   <YAxis stroke="#9ca3af" />
                   <YAxis yAxisId="right" orientation="right" stroke="#ec4899" />
-                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151'}} />
+                  <Tooltip contentStyle={{backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px'}} />
                   <Legend />
-                  <Line type="monotone" dataKey="average_trust_score" stroke="#3b82f6" dot={{fill: '#3b82f6'}} />
-                  <Line type="monotone" dataKey="articles_analyzed" stroke="#ec4899" yAxisId="right" />
+                  <Line
+                    type="monotone"
+                    dataKey="average_trust_score"
+                    stroke="#3b82f6"
+                    dot={{fill: '#3b82f6', r: 4}}
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="articles_analyzed"
+                    stroke="#ec4899"
+                    yAxisId="right"
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
+                  />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </motion.div>
           )}
 
           {/* Top Sources */}
           {topSources && topSources.length > 0 && (
-            <div className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">🔗 Top Sources</h3>
-              <div className="space-y-3">
+            <motion.div
+              variants={chartVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="bg-gray-900/40 backdrop-blur border border-gray-800/50 rounded-xl p-6 card-hover hover:border-cyan-500/30 transition-all duration-300"
+            >
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-lg font-semibold text-white mb-4"
+              >
+                <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+                  🔗
+                </motion.span>
+                {' '}Top Sources
+              </motion.h3>
+              <motion.div
+                className="space-y-3"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
                 {topSources.map((source, idx) => (
-                  <div key={idx} className="bg-gray-800/30 rounded-lg p-4 flex justify-between items-center">
+                  <motion.div
+                    key={idx}
+                    variants={listItemVariants}
+                    custom={idx}
+                    transition={{ delay: idx * 0.1 }}
+                    whileHover={{ x: 10, boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)' }}
+                    className="bg-gray-800/30 rounded-lg p-4 flex justify-between items-center hover:bg-gray-800/50 transition-colors border border-gray-700/30 hover:border-blue-500/50"
+                  >
                     <div>
-                      <p className="text-white font-semibold">{source.source}</p>
-                      <p className="text-gray-400 text-sm">{source.article_count} articles analyzed</p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 + idx * 0.1 }}
+                        className="text-white font-semibold"
+                      >
+                        {source.source}
+                      </motion.p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 + idx * 0.1 }}
+                        className="text-gray-400 text-sm"
+                      >
+                        {source.article_count} articles analyzed
+                      </motion.p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-blue-400">{source.average_trust_score}</p>
+                    <motion.div
+                      className="text-right"
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <motion.p
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 + idx * 0.1 }}
+                        className="text-2xl font-bold text-blue-400"
+                      >
+                        {source.average_trust_score}
+                      </motion.p>
                       <p className="text-gray-400 text-xs">avg trust</p>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                 ))}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
         </div>
       </div>

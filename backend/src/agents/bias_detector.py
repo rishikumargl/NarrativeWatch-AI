@@ -13,9 +13,13 @@ class BiasDetectorAgent:
         self.llm = llm
         self.ml = ml
 
-    async def detect_bias(self, article_text: str, title: str) -> dict:
-        """Detect bias using real ML models"""
+    async def detect_bias(self, article_text: str, title: str, context: dict = None) -> dict:
+        """Detect bias using real ML models with optional enriched context"""
         logger.info("Bias detector starting...")
+
+        if context:
+            logger.info(f"🔍 Using enriched context: source baseline={context.get('source', {}).get('avg_bias_score', 'N/A')}, "
+                       f"historical risk={context.get('source', {}).get('risk_level', 'N/A')}")
 
         findings = {
             "title": title,

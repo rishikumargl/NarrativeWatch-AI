@@ -44,9 +44,12 @@ class BotDetectorAgent:
 
         return min(100, max(0, int(bot_score)))
 
-    async def analyze_engagement(self, article_url: str, article_text: str = "") -> dict:
-        """Analyze text for bot patterns and inauthentic markers"""
+    async def analyze_engagement(self, article_url: str, article_text: str = "", context: dict = None) -> dict:
+        """Analyze text for bot patterns and inauthentic markers with optional enriched context"""
         logger.info("Bot detection analyzing article text...")
+
+        if context:
+            logger.info(f"🔍 Using enriched context: {context.get('news_coverage', {}).get('similar_articles_found', 0)} corroborating sources for pattern analysis")
         findings = {"url": article_url}
 
         if article_text:

@@ -371,3 +371,41 @@ class NewsArticleAnalysis(Base):
         Index('idx_news_analyses_risk_level', 'risk_level'),
         Index('idx_news_analyses_analysis_timestamp', 'analysis_timestamp'),
     )
+
+
+class Document(Base):
+    """News documents ingested for RAG system."""
+
+    __tablename__ = "documents"
+
+    # Primary key
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Document metadata
+    title = Column(String(500), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    source_url = Column(String(1000), nullable=False, unique=True, index=True)
+    source_domain = Column(String(255), nullable=False, index=True)
+
+    # Article metadata
+    author = Column(String(255), nullable=True)
+    publish_date = Column(String(50), nullable=True)
+    category = Column(String(100), nullable=True, index=True)  # politics, sports, war, etc.
+    tags = Column(JSON, nullable=True)  # List of tags
+
+    # Deduplication
+    document_hash = Column(String(64), nullable=False, unique=True, index=True)
+
+    # Vector embedding for semantic search
+    content_embedding = Column(Vector(1536), nullable=True)
+
+    # Timestamps
+    ingestion_timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_documents_source_domain', 'source_domain'),
+        Index('idx_documents_category', 'category'),
+        Index('idx_documents_ingestion_timestamp', 'ingestion_timestamp'),
+    )

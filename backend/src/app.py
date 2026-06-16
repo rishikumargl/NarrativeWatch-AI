@@ -22,6 +22,8 @@ from src.services.url_data_extractor import URLDataExtractor
 from src.services.rag_context_service import RAGContextService
 from src.services.context_combiner import ContextCombiner
 from src.services.cross_source_verification import cross_source_verification
+from src.api.document_routes import upload_document, upload_batch_documents, get_document_statistics
+from src.api.document_routes import DocumentUploadRequest, BatchDocumentUploadRequest
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -76,6 +78,25 @@ async def health():
         "agents": 4,
         "timestamp": datetime.utcnow().isoformat()
     }
+
+# ============================================================================
+# DOCUMENT INGESTION ENDPOINTS (RAG System)
+# ============================================================================
+
+@app.post("/api/v1/documents/upload")
+async def ingest_document(request: DocumentUploadRequest):
+    """Upload a single news document for RAG ingestion."""
+    return await upload_document(request)
+
+@app.post("/api/v1/documents/upload-batch")
+async def ingest_batch(request: BatchDocumentUploadRequest):
+    """Upload multiple news documents for RAG ingestion."""
+    return await upload_batch_documents(request)
+
+@app.get("/api/v1/documents/stats")
+async def document_stats():
+    """Get statistics about ingested documents."""
+    return await get_document_statistics()
 
 @app.post("/api/v1/analyze")
 async def analyze(request: AnalysisRequest):

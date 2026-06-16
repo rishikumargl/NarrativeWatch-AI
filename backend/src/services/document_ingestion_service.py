@@ -132,25 +132,31 @@ class DocumentIngestionService:
             embedding_stored = False
             chunks_created = 0
 
-            if self.embedding_client:
-                try:
-                    # Embed full document for overview search
+            # Try to embed full document (graceful fallback if unavailable)
+            try:
+                if self.embedding_client and hasattr(self.embedding_client, 'embed_text'):
                     embedding = self.embedding_client.embed_text(content)
                     embedding_stored = embedding is not None
+                else:
+                    embedding_stored = False
+            except Exception as e:
+                logger.warning(f"Failed to embed full document: {e}")
+                embedding_stored = False
 
-                    # If using chunks, store them separately for finer-grained retrieval
-                    if use_semantic_chunks and chunks:
-                        chunks_created = await self._store_document_chunks(
-                            parent_title=title,
-                            chunks=chunks,
-                            source_url=source_url,
-                            source_domain=source_domain,
-                            category=category
-                        )
-                        logger.info(f"Stored {chunks_created} document chunks for semantic RAG")
-
+            # If using chunks, store them separately for finer-grained retrieval
+            if use_semantic_chunks and chunks:
+                try:
+                    chunks_created = self._store_document_chunks(
+                        parent_title=title,
+                        chunks=chunks,
+                        source_url=source_url,
+                        source_domain=source_domain,
+                        category=category
+                    )
+                    logger.info(f"Stored {chunks_created} document chunks for semantic RAG")
                 except Exception as e:
-                    logger.warning(f"Failed to generate embedding: {e}")
+                    logger.warning(f"Failed to store chunks: {e}")
+                    chunks_created = 0
 
             # Insert full document into database
             query = text("""
@@ -220,7 +226,7 @@ class DocumentIngestionService:
                 "chunks_created": 0
             }
 
-    async def _store_document_chunks(
+    def _store_document_chunks(
         self,
         parent_title: str,
         chunks: List[str],
@@ -292,9 +298,15 @@ class DocumentIngestionService:
 
             except Exception as e:
                 logger.warning(f"Failed to store chunk {idx}: {e}")
+                continue
 
         if chunks_stored > 0:
-            self.db.commit()
+            try:
+                self.db.commit()
+            except Exception as e:
+                logger.error(f"Failed to commit chunks: {e}")
+                self.db.rollback()
+                return 0
 
         return chunks_stored
 

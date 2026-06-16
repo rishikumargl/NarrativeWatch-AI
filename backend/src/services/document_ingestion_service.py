@@ -1,4 +1,4 @@
-"""Document ingestion service for RAG pipeline."""
+"""Document ingestion service for RAG pipeline with semantic chunking."""
 
 import logging
 import hashlib
@@ -14,6 +14,36 @@ except ImportError:
     get_embedding_client = None
 
 logger = logging.getLogger(__name__)
+
+
+def semantic_chunk_by_paragraphs(text: str, min_length: int = 100) -> List[str]:
+    """
+    Split document into semantic chunks by paragraph breaks.
+
+    Preserves natural text boundaries (paragraphs) while maintaining
+    semantic coherence. Ideal for news articles and documents with
+    natural paragraph structure.
+
+    Args:
+        text: Document text to chunk
+        min_length: Minimum chunk length (chars) - skip very small paragraphs
+
+    Returns:
+        List of paragraph chunks
+    """
+    if not text:
+        return []
+
+    # Split by double newlines (paragraph breaks)
+    paragraphs = text.split('\n\n')
+
+    # Filter empty and very short paragraphs
+    chunks = [p.strip() for p in paragraphs if p.strip() and len(p.strip()) >= min_length]
+
+    if not chunks:
+        return [text.strip()] if text.strip() else []
+
+    return chunks
 
 
 class DocumentIngestionService:
@@ -39,10 +69,11 @@ class DocumentIngestionService:
         author: Optional[str] = None,
         publish_date: Optional[str] = None,
         category: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        use_semantic_chunks: bool = True
     ) -> Dict:
         """
-        Ingest a news document into the RAG system.
+        Ingest a news document into the RAG system with optional semantic chunking.
 
         Args:
             title: Document title
@@ -53,13 +84,15 @@ class DocumentIngestionService:
             publish_date: Optional publish date
             category: Optional category (politics, sports, war, etc.)
             tags: Optional list of tags
+            use_semantic_chunks: If True, chunk by paragraphs for better RAG retrieval
 
         Returns:
             {
                 "success": bool,
                 "document_id": str,
                 "message": str,
-                "embedding_stored": bool
+                "embedding_stored": bool,
+                "chunks_created": int
             }
         """
         try:
@@ -83,20 +116,43 @@ class DocumentIngestionService:
                     "success": True,
                     "document_id": str(existing[0]),
                     "message": "Document already ingested (duplicate)",
-                    "embedding_stored": True
+                    "embedding_stored": True,
+                    "chunks_created": 0
                 }
 
-            # Generate embedding if available
+            # Apply semantic chunking if enabled
+            chunks = []
+            if use_semantic_chunks:
+                chunks = semantic_chunk_by_paragraphs(content)
+                logger.info(f"Created {len(chunks)} semantic chunks from document")
+
+            # For full document embedding, use original content
+            # For chunk-based RAG, we'll embed each chunk separately
             embedding = None
             embedding_stored = False
+            chunks_created = 0
+
             if self.embedding_client:
                 try:
+                    # Embed full document for overview search
                     embedding = self.embedding_client.embed_text(content)
                     embedding_stored = embedding is not None
+
+                    # If using chunks, store them separately for finer-grained retrieval
+                    if use_semantic_chunks and chunks:
+                        chunks_created = await self._store_document_chunks(
+                            parent_title=title,
+                            chunks=chunks,
+                            source_url=source_url,
+                            source_domain=source_domain,
+                            category=category
+                        )
+                        logger.info(f"Stored {chunks_created} document chunks for semantic RAG")
+
                 except Exception as e:
                     logger.warning(f"Failed to generate embedding: {e}")
 
-            # Insert document into database
+            # Insert full document into database
             query = text("""
                 INSERT INTO documents (
                     title,
@@ -143,13 +199,14 @@ class DocumentIngestionService:
             self.db.commit()
             document_id = result[0]
 
-            logger.info(f"Document ingested successfully: {document_id}")
+            logger.info(f"Document ingested successfully: {document_id} ({chunks_created} chunks)")
 
             return {
                 "success": True,
                 "document_id": str(document_id),
-                "message": f"Document ingested successfully",
-                "embedding_stored": embedding_stored
+                "message": f"Document ingested successfully with {chunks_created} semantic chunks",
+                "embedding_stored": embedding_stored,
+                "chunks_created": chunks_created
             }
 
         except Exception as e:
@@ -159,8 +216,87 @@ class DocumentIngestionService:
                 "success": False,
                 "document_id": None,
                 "message": f"Failed to ingest document: {str(e)}",
-                "embedding_stored": False
+                "embedding_stored": False,
+                "chunks_created": 0
             }
+
+    async def _store_document_chunks(
+        self,
+        parent_title: str,
+        chunks: List[str],
+        source_url: str,
+        source_domain: str,
+        category: Optional[str] = None
+    ) -> int:
+        """
+        Store semantic chunks for finer-grained RAG retrieval.
+
+        Args:
+            parent_title: Title of parent document
+            chunks: List of text chunks
+            source_url: Source URL
+            source_domain: Source domain
+            category: Optional category
+
+        Returns:
+            Number of chunks successfully stored
+        """
+        chunks_stored = 0
+
+        for idx, chunk in enumerate(chunks):
+            try:
+                chunk_embedding = None
+                if self.embedding_client:
+                    try:
+                        chunk_embedding = self.embedding_client.embed_text(chunk)
+                    except Exception as e:
+                        logger.warning(f"Failed to embed chunk {idx}: {e}")
+
+                # Store chunk as separate document record
+                query = text("""
+                    INSERT INTO documents (
+                        title,
+                        content,
+                        source_url,
+                        source_domain,
+                        category,
+                        document_hash,
+                        content_embedding,
+                        ingestion_timestamp
+                    ) VALUES (
+                        :title,
+                        :content,
+                        :source_url,
+                        :source_domain,
+                        :category,
+                        :document_hash,
+                        :embedding,
+                        :timestamp
+                    )
+                """)
+
+                chunk_hash = hashlib.md5(f"{source_url}#{idx}#{chunk}".encode()).hexdigest()
+
+                self.db.execute(query, {
+                    "title": f"{parent_title} [Chunk {idx + 1}]",
+                    "content": chunk,
+                    "source_url": source_url,
+                    "source_domain": source_domain,
+                    "category": category,
+                    "document_hash": chunk_hash,
+                    "embedding": chunk_embedding,
+                    "timestamp": datetime.utcnow()
+                })
+
+                chunks_stored += 1
+
+            except Exception as e:
+                logger.warning(f"Failed to store chunk {idx}: {e}")
+
+        if chunks_stored > 0:
+            self.db.commit()
+
+        return chunks_stored
 
     async def ingest_batch(
         self,
@@ -203,7 +339,8 @@ class DocumentIngestionService:
                     author=doc.get("author"),
                     publish_date=doc.get("publish_date"),
                     category=doc.get("category"),
-                    tags=doc.get("tags")
+                    tags=doc.get("tags"),
+                    use_semantic_chunks=doc.get("use_semantic_chunks", True)
                 )
 
                 if result["success"]:

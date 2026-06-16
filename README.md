@@ -44,7 +44,7 @@
 
 ---
 
-## 🆕 What's New (v2.1+)
+## 🆕 What's New (v2.1+ with v2.2 RAG Integration)
 
 ### Major Architecture Changes
 
@@ -109,11 +109,91 @@ Real-time analytics with charts:
 - Confidence score (0-100) based on how widely reported
 - Keyword extraction: category-aware + entity-based
 
+#### **6. Dual-Context RAG System (v2.2)** ⭐ **NEW**
+
+**Retrieval-Augmented Generation** for enhanced agent analysis:
+
+Three parallel data sources enriching each analysis:
+
+| Source | Data | Timeframe | Use Case |
+|--------|------|-----------|----------|
+| **URL Extraction** | Article content, entities, source domain | Current | Primary input from user |
+| **PostgreSQL RAG** | Entity reputation, source baseline, similar articles | 90-180 days | Historical context |
+| **News APIs** | Other outlets covering same story, verification | Live | Cross-source corroboration |
+
+**RAG Pipeline** (4 Stages):
+
+```
+Stage 1: URLDataExtractor
+  ├─ Extract: title, content, entities, source_domain
+  ├─ Entity scoring: importance, frequency, semantic relevance
+  └─ Output: url_data bundle
+
+Stage 2: Parallel Retrieval (2-3s)
+  ├─ RAGContextService (PostgreSQL)
+  │  ├─ Entity reputation: 90-day mention count, avg trust/bias
+  │  ├─ Source baseline: 180-day avg trust/bias, risk level
+  │  └─ Similar articles: pgvector semantic search
+  │
+  └─ News API Verification (non-blocking)
+     ├─ cross_source_verification.verify_story()
+     ├─ Find corroborating sources
+     └─ Confidence score calculation
+
+Stage 3: ContextCombiner
+  ├─ Merge: url_data + rag_context + news_api_results
+  ├─ Enrich entities: add historical mention counts
+  ├─ Add source scores: credibility baseline from 180d history
+  └─ Output: enriched_context bundle (metadata + data)
+
+Stage 4: Agent Dispatch with Context
+  ├─ content_analyzer(..., context=enriched_context)
+  ├─ bias_detector(..., context=enriched_context)
+  ├─ bot_detector(..., context=enriched_context)
+  └─ misinformation_detector(..., context=enriched_context)
+```
+
+**Benefits**:
+- ✅ Agents use historical entity reputation for credibility scoring
+- ✅ Bias detection adjusts for source baseline credibility
+- ✅ Bot detection considers news coverage patterns
+- ✅ Misinformation detection uses corroboration signals
+- ✅ Graceful degradation: pipeline continues if RAG/APIs unavailable
+- ✅ Improved accuracy: trust scores incorporate historical context
+
+**Context Bundle Structure**:
+```json
+{
+  "metadata": {
+    "data_sources": ["URL", "RAG", "NewsAPI/Tavily"],
+    "total_entities": 12,
+    "total_corroborating_sources": 8
+  },
+  "entities": [
+    {
+      "name": "Entity",
+      "historical_mentions": 45,        // From RAG
+      "historical_trust_avg": 78.5,     // From RAG
+      "historical_bias_avg": 25.3       // From RAG
+    }
+  ],
+  "source": {
+    "avg_trust_score": 72.3,            // From RAG (180d)
+    "avg_bias_score": 31.5,             // From RAG (180d)
+    "risk_level": "LOW"                 // From RAG
+  },
+  "news_coverage": {
+    "verification_score": 0.88,         // From News API
+    "corroborating_sources": [...]      // From News API
+  }
+}
+```
+
 ---
 
 ## 🏗️ Architecture
 
-### End-to-End System Flow
+### End-to-End System Flow with Dual-Context RAG
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -124,70 +204,98 @@ Real-time analytics with charts:
                 ┌────▼──────────────┐
                 │   WebSocket       │
                 │ Real-time Updates │
+                │  (4 Stages)       │
                 └────┬──────────────┘
                      │
 ┌────────────────────▼─────────────────────────────────────────────────┐
 │                    FASTAPI BACKEND (Python 3.11)                     │
 │                                                                       │
 │ ┌─────────────────────────────────────────────────────────────────┐  │
-│ │ STAGE 1: CONTENT EXTRACTION                                     │  │
-│ │ ├─ URL Extraction (Trafilatura → newspaper3k → BeautifulSoup)  │  │
-│ │ └─ Text Cleaning & Preprocessing                               │  │
+│ │ STAGE 1: URL DATA EXTRACTION + ENTITY SCORING (2-5s)          │  │
+│ │ ├─ URLDataExtractor.extract_with_entities()                   │  │
+│ │ ├─ Extract: title, content, author, publish_date, entities   │  │
+│ │ └─ Identify: source_domain, entity importance scores         │  │
+│ │                                                                │  │
+│ │ WebSocket Message: "Stage 1: Extracting article data..."     │  │
 │ └─────────────────────────────────────────────────────────────────┘  │
 │                                 ↓                                      │
 │ ┌─────────────────────────────────────────────────────────────────┐  │
-│ │ STAGE 2: PARALLEL AGENTS (4 concurrent, 3-5s)                 │  │
-│ │ ├─ Content Analyzer (HF API)      → Sentiment, Toxicity      │  │
-│ │ ├─ Bias Detector (HF API)         → 5 Bias Types (0-100)     │  │
-│ │ ├─ Bot Detector (HF API)          → Authenticity Scoring     │  │
-│ │ └─ Misinformation Detect (HF API) → Propaganda, Claims       │  │
-│ │    └─ All use HuggingFace Inference API (cloud-based)        │  │
+│ │ STAGE 2: PARALLEL CONTEXT RETRIEVAL (2-3s, PARALLEL)         │  │
+│ │                                                                │  │
+│ │ ├─ [2A] RAG CONTEXT SERVICE (PostgreSQL)                      │  │
+│ │ │  ├─ Entity Reputation: mention count, avg trust, avg bias  │  │
+│ │ │  ├─ Source Baseline: avg trust/bias, risk level (180d)    │  │
+│ │ │  └─ Similar Articles: pgvector semantic search (0.5+)     │  │
+│ │ │                                                             │  │
+│ │ └─ [2B] NEWS API VERIFICATION (Parallel, non-blocking)       │  │
+│ │    ├─ cross_source_verification.verify_story()              │  │
+│ │    ├─ Find other outlets covering same story                 │  │
+│ │    └─ Calculate verification confidence (0-100)             │  │
+│ │                                                                │  │
+│ │ WebSocket Message: "Stage 2: Retrieving historical context..." │  │
 │ └─────────────────────────────────────────────────────────────────┘  │
 │                                 ↓                                      │
 │ ┌─────────────────────────────────────────────────────────────────┐  │
-│ │ STAGE 3: REFLECTION LOOP (Max 3 Iterations)                    │  │
+│ │ STAGE 3: CONTEXT COMBINATION (<100ms)                         │  │
+│ │ ├─ ContextCombiner.combine_contexts()                         │  │
+│ │ ├─ Merge: URL data + RAG data + News API results            │  │
+│ │ ├─ Enrich: entities with historical mention counts           │  │
+│ │ ├─ Add: source credibility scores, verification info        │  │
+│ │ └─ Return: unified enriched_context bundle                   │  │
+│ │                                                                │  │
+│ │ WebSocket Message: "Stage 3: Combining context from sources..." │  │
+│ └─────────────────────────────────────────────────────────────────┘  │
+│                                 ↓                                      │
+│ ┌─────────────────────────────────────────────────────────────────┐  │
+│ │ STAGE 4: PARALLEL AGENTS WITH ENRICHED CONTEXT (3-5s)        │  │
+│ │ ├─ ContentAnalyzer(text, title, context=enriched_context)   │  │
+│ │ │  └─ Uses entity reputation for credibility scoring        │  │
+│ │ │                                                             │  │
+│ │ ├─ BiasDetector(text, title, context=enriched_context)      │  │
+│ │ │  └─ Uses source baseline for bias adjustment             │  │
+│ │ │                                                             │  │
+│ │ ├─ BotDetector(url, text, context=enriched_context)         │  │
+│ │ │  └─ Uses news patterns for authenticity analysis         │  │
+│ │ │                                                             │  │
+│ │ └─ MisinformationDetector(text, title, context)             │  │
+│ │    └─ Uses corroboration for fact-checking context         │  │
+│ │                                                                │  │
+│ │ WebSocket Message: "Stage 4: Running agents with context..."  │  │
+│ └─────────────────────────────────────────────────────────────────┘  │
+│                                 ↓                                      │
+│ ┌─────────────────────────────────────────────────────────────────┐  │
+│ │ STAGE 5: REFLECTION LOOP (Max 3 Iterations)                    │  │
 │ │                                                                  │  │
 │ │ ┌─ ITERATION 1 (Threshold ≥ 0.55) ───────────────────────┐    │  │
 │ │ │  Synthesis: Mistral mistral-large (2-3s)              │    │  │
-│ │ │  └─ Combines findings, calculates trust_score         │    │  │
-│ │ │  └─ Generates summary: "comprehensive analysis"       │    │  │
-│ │ │                                                        │    │  │
 │ │ │  Reviewer: Llama llama-70b (1-2s)                    │    │  │
-│ │ │  └─ Quality check: depth, evidence, balance, etc.   │    │  │
 │ │ │  └─ If approved ✅ → Return results                  │    │  │
 │ │ │  └─ If rejected ❌ → Continue to Iteration 2        │    │  │
 │ │ └──────────────────────────────────────────────────────┘    │  │
 │ │                      ↓ (if rejected)                         │  │
 │ │ ┌─ ITERATION 2 (Threshold ≥ 0.63) ───────────────────────┐    │  │
-│ │ │  Fresh Synthesis (cache bypassed)                      │    │  │
-│ │ │  Instruction: "Add MORE depth, examples, evidence"     │    │  │
-│ │ │  Re-review with stricter threshold                     │    │  │
+│ │ │  Fresh Synthesis with deeper analysis                  │    │  │
 │ │ │  └─ If approved ✅ → Return results                   │    │  │
 │ │ │  └─ If rejected ❌ → Continue to Iteration 3         │    │  │
 │ │ └──────────────────────────────────────────────────────┘    │  │
 │ │                      ↓ (if rejected)                         │  │
 │ │ ┌─ ITERATION 3 (Threshold ≥ 0.70) ───────────────────────┐    │  │
 │ │ │  Deepest Analysis (maximum detail)                      │    │  │
-│ │ │  Instruction: "Go DEEPEST with evidence-rich analysis" │    │  │
-│ │ │  Final review                                           │    │  │
-│ │ │  └─ If still rejected ❌ → Return best attempt (iter 3)│    │  │
+│ │ │  └─ Return best attempt                                 │    │  │
 │ │ └──────────────────────────────────────────────────────┘    │  │
 │ │                                                               │  │
 │ └─────────────────────────────────────────────────────────────────┘  │
 │                                 ↓                                      │
 │ ┌─────────────────────────────────────────────────────────────────┐  │
-│ │ STAGE 4: CROSS-SOURCE VERIFICATION (Tavily, ~1-2s)             │  │
-│ │ └─ Validates story corroboration, returns matching sources     │  │
-│ └─────────────────────────────────────────────────────────────────┘  │
-│                                 ↓                                      │
-│ ┌─────────────────────────────────────────────────────────────────┐  │
-│ │ STAGE 5: DATABASE PERSISTENCE (PostgreSQL)                     │  │
-│ │ └─ Saves 30+ fields for analysis history & analytics          │  │
+│ │ STAGE 6: DATABASE PERSISTENCE (PostgreSQL)                     │  │
+│ │ ├─ Saves 30+ fields for analysis history                      │  │
+│ │ └─ Stores enriched context metadata for future RAG queries    │  │
 │ └─────────────────────────────────────────────────────────────────┘  │
 │                                                                       │
 └────────────────────┬──────────────────────────────────────────────────┘
                      │
               Send Final Results
+              (with context metadata)
               via WebSocket
                      │
                      ▼
@@ -198,6 +306,26 @@ Real-time analytics with charts:
 ```
 
 ### Key Components
+
+#### **RAG Services** (Dual-Context Enrichment)
+
+**New in v2.2**: Three specialized services that work together to enrich agent analysis:
+
+| Service | Purpose | Input | Output |
+|---------|---------|-------|--------|
+| **URLDataExtractor** | Extract article + entities from URL | news_url | url_data bundle with entities, source_domain |
+| **RAGContextService** | Retrieve historical context from PostgreSQL | entities, domain | entity_reputation, source_baseline, similar_articles |
+| **ContextCombiner** | Merge all 3 data sources | url_data, rag_context, news_api_results | unified enriched_context bundle |
+
+**Implementation Details**:
+- **URLDataExtractor**: Uses existing URLExtractor + EntityExtractor
+- **RAGContextService**: Queries PostgreSQL for 90-180 day historical data
+  - Entity reputation: count of mentions, avg trust/bias scores
+  - Source baseline: credibility assessment from article history
+  - Similar articles: pgvector semantic search (threshold > 0.5)
+- **ContextCombiner**: Synchronous merge with error handling
+
+---
 
 #### **Analysis Agents** (HuggingFace Inference API)
 
@@ -253,14 +381,24 @@ Run in parallel on cloud infrastructure (3-5s total):
 ## ✨ Features
 
 ### Core Analysis
-✅ **Real-time WebSocket Updates** - See agents working live  
+✅ **Real-time WebSocket Updates** - See 4-stage pipeline live  
+✅ **Dual-Context RAG System** - Historical + live data enrichment  
 ✅ **Reflection Loop** - Auto-retries with escalating quality (max 3×)  
 ✅ **Dynamic Trust Scoring** - Calculated from actual findings (10-100)  
 ✅ **Iteration-Aware Synthesis** - Gets deeper on retry  
-✅ **7 Local ML Models** - Fast, offline analysis  
-✅ **Cross-Source Verification** - Tavily API validation  
+✅ **7 Local ML Models** - Fast, cloud-based analysis  
+✅ **Cross-Source Verification** - Tavily + NewsAPI validation  
 ✅ **Category Awareness** - Context-aware scoring  
-✅ **Comprehensive Summaries** - 10-12 sentence reports with actionable guidance  
+✅ **Comprehensive Summaries** - 10-12 sentence reports with actionable guidance
+
+### RAG & Context Enrichment (v2.2)
+✅ **PostgreSQL Historical Context** - Entity reputation, source baseline (90-180d)  
+✅ **Semantic Similarity Search** - pgvector search for related articles  
+✅ **Entity Reputation Tracking** - Mention count + trust/bias history  
+✅ **Source Credibility Baseline** - 180-day historical trust assessment  
+✅ **Parallel Data Retrieval** - RAG + News APIs run concurrently  
+✅ **Graceful Degradation** - Pipeline continues if any stage unavailable  
+✅ **Context-Aware Agents** - All 4 agents use enriched historical data  
 
 ### Frontend Features
 ✅ **Dark Theme UI** - Professional, modern design  
@@ -284,10 +422,15 @@ Run in parallel on cloud infrastructure (3-5s total):
 - **Framework**: FastAPI 0.104.1 (Async Python)
 - **Language**: Python 3.11+
 - **Database**: PostgreSQL 14+ + SQLAlchemy ORM
+  - **pgvector**: Vector similarity search for semantic article matching
 - **LLMs** (Synthesis & Review):
   - **Mistral API** (`mistral-large`) - Advanced synthesis
   - **Llama API** (`llama-70b`) - Expert review
   - **Groq API** (`llama-3.1-8b-instant`) - Fast fallback
+- **RAG Services** (v2.2):
+  - **URLDataExtractor**: Extract article + entities from news URLs
+  - **RAGContextService**: Query PostgreSQL for historical entity/source data
+  - **ContextCombiner**: Merge URL, RAG, and News API data
 - **ML Models** (Analysis Agents - HuggingFace Inference API):
   - **Sentiment**: `distilbert-base-uncased-finetuned-sst-2-english`
   - **Bias Detection**: `facebook/bart-large-mnli` (zero-shot)
@@ -299,8 +442,10 @@ Run in parallel on cloud infrastructure (3-5s total):
 - **APIs**: 
   - **HuggingFace Inference** (7 ML models)
   - **Tavily** (cross-source verification)
+  - **NewsAPI** (cross-source news aggregation)
 - **Concurrency**: asyncio + ThreadPoolExecutor
 - **Web Scraping**: Trafilatura, newspaper3k, BeautifulSoup4
+- **Vector Search**: pgvector for semantic similarity
 
 ### Frontend
 - **Framework**: React 18.2.0
@@ -309,6 +454,175 @@ Run in parallel on cloud infrastructure (3-5s total):
 - **Charts**: Recharts 2.10.3
 - **Icons**: Lucide React
 - **Real-time**: Native WebSocket
+
+---
+
+## 📚 RAG Implementation Details
+
+### Architecture Components
+
+**Three Service Layer Files** (v2.2):
+
+```python
+# backend/src/services/url_data_extractor.py (108 lines)
+URLDataExtractor.extract_with_entities(url: str) -> Dict
+  ├─ Extracts: title, content, author, publish_date, source_domain
+  ├─ Entity scoring: importance, frequency, type classification
+  └─ Returns: url_data bundle with metadata
+
+# backend/src/services/rag_context_service.py (283 lines)
+RAGContextService.get_enriched_context(entities, domain, content) -> Dict
+  ├─ Entity reputation (90-day lookback)
+  │  └─ Queries: mention count, avg trust, avg bias
+  ├─ Source baseline (180-day lookback)
+  │  └─ Queries: article count, avg trust/bias, risk level
+  └─ Similar articles (pgvector semantic search)
+     └─ Threshold: > 0.5 similarity score
+
+# backend/src/services/context_combiner.py (197 lines)
+ContextCombiner.combine_contexts(url_data, rag_context, news_api) -> Dict
+  ├─ Merges: entity + RAG + news data
+  ├─ Enriches: entities with historical data
+  └─ Returns: unified enriched_context bundle
+```
+
+### Data Flow Example
+
+```
+Input: News URL
+       ↓
+URLDataExtractor Output:
+{
+  "url": "https://news.example.com/article",
+  "title": "Breaking News",
+  "content": "Article content...",
+  "entities": {
+    "total_count": 12,
+    "entities": [
+      {"name": "Entity1", "importance_score": 0.95}
+    ]
+  }
+}
+       ↓
+RAGContextService Output:
+{
+  "entity_reputation": {
+    "Entity1": {
+      "mention_count": 45,
+      "avg_trust_in_context": 78.5,
+      "avg_bias_when_mentioned": 25.3
+    }
+  },
+  "source_baseline": {
+    "domain": "news.example.com",
+    "avg_trust_score": 72.3,
+    "risk_level": "LOW"
+  },
+  "similar_articles": [
+    {
+      "url": "...",
+      "similarity": 0.82,
+      "trust_score": 75.0
+    }
+  ]
+}
+       ↓
+ContextCombiner Output:
+{
+  "metadata": {
+    "data_sources": ["URL", "RAG", "NewsAPI/Tavily"],
+    "total_entities": 12,
+    "total_corroborating_sources": 8
+  },
+  "entities": [
+    {
+      "name": "Entity1",
+      "importance_score": 0.95,
+      "historical_mentions": 45,        ← FROM RAG
+      "historical_trust_avg": 78.5,     ← FROM RAG
+      "historical_bias_avg": 25.3       ← FROM RAG
+    }
+  ],
+  "source": {
+    "avg_trust_score": 72.3,            ← FROM RAG
+    "avg_bias_score": 31.5,             ← FROM RAG
+    "risk_level": "LOW"                 ← FROM RAG
+  },
+  "news_coverage": {
+    "similar_articles_found": 8,        ← FROM NEWS API
+    "verification_score": 0.88,         ← FROM NEWS API
+    "corroborating_sources": [...]      ← FROM NEWS API
+  }
+}
+       ↓
+Agent Input: (text, title, context=enriched_context)
+  ├─ ContentAnalyzer: Uses entity reputation for credibility
+  ├─ BiasDetector: Uses source baseline for adjustment
+  ├─ BotDetector: Uses news patterns for authenticity
+  └─ MisinformationDetector: Uses corroboration signals
+```
+
+### PostgreSQL Schema Extensions
+
+**New RAG Tables**:
+```sql
+-- Stores content embeddings for semantic search
+ALTER TABLE news_article_analyses ADD COLUMN content_embedding vector(1536);
+
+-- Vector index for fast semantic similarity
+CREATE INDEX ON news_article_analyses USING ivfflat (content_embedding vector_cosine_ops)
+  WITH (lists = 100);
+
+-- Entity reputation tracking
+SELECT 
+  entities::text as entity,
+  COUNT(*) as mention_count,
+  AVG(trust_score) as avg_trust,
+  AVG(overall_bias_score) as avg_bias
+FROM news_article_analyses
+WHERE analysis_timestamp > NOW() - INTERVAL '90 days'
+GROUP BY entities::text;
+
+-- Source baseline calculation
+SELECT 
+  article_url ILIKE domain_pattern as source_domain,
+  COUNT(*) as article_count,
+  AVG(trust_score) as avg_trust,
+  AVG(overall_bias_score) as avg_bias
+FROM news_article_analyses
+WHERE analysis_timestamp > NOW() - INTERVAL '180 days'
+GROUP BY source_domain;
+```
+
+### Performance Characteristics
+
+| Operation | Latency | Notes |
+|-----------|---------|-------|
+| URL extraction | 2-5s | Depends on URL content size |
+| Entity reputation lookup | 100-200ms | Single SQL query, indexed |
+| Source baseline lookup | 50-100ms | Aggregate query, indexed |
+| Similar articles search | 500-1000ms | pgvector semantic search |
+| Context combination | <100ms | Pure Python merge operation |
+| **Total Stage 2** | **2-3 seconds** | **Parallel execution** |
+
+### Error Handling & Fallbacks
+
+```
+RAG Service Failures (Non-Blocking):
+├─ PostgreSQL unavailable
+│  └─ Returns empty entity_reputation, source_baseline maintains default scores
+├─ Embedding client missing
+│  └─ Skips similar article search, continues with other data
+├─ Semantic search fails
+│  └─ Returns empty similar_articles array
+└─ Context combination errors
+   └─ Returns minimal valid structure with fallback values
+
+Pipeline Continues If:
+  ✓ RAG data unavailable → Uses URL extraction + News APIs only
+  ✓ News APIs fail → Uses URL extraction + RAG data only
+  ✓ Both fail → Uses URL extraction only (agents work as before)
+```
 
 ---
 

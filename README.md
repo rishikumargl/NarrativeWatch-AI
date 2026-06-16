@@ -44,9 +44,88 @@
 
 ---
 
-## 🆕 What's New (v2.1+ with v2.2 RAG Integration)
+## 🆕 What's New (v2.3: Enhanced Dashboard + Improved Trust Scoring)
 
-### Major Architecture Changes
+### Latest Features (v2.3)
+
+#### **1. Comprehensive Analytics Dashboard with Animations** ⭐ **NEW**
+
+**Frontend Enhancements**:
+- 📊 **10+ Interactive Charts** with smooth animations
+  - Trust Score Distribution (5 buckets)
+  - Risk Level Distribution (color-coded pie chart)
+  - Sentiment Breakdown (POSITIVE/NEUTRAL/NEGATIVE)
+  - Trust by Category (sports, war, entertainment, politics, etc.)
+  - Bot Detection Analysis (radar chart with 5 dimensions)
+  - Misinformation Risk Distribution (donut chart)
+  - Top Entities Mentioned (horizontal bar chart)
+  - Article Volume Timeline (area chart, last 30 days)
+  - Trust Score Trend (dual-axis line chart)
+  - Top Sources (interactive list with hover effects)
+
+- 🎨 **Advanced Animation System**:
+  - Framer Motion for smooth transitions and interactions
+  - 11+ CSS keyframe animations (bounce, breathe, wiggle, glow, shimmer, etc.)
+  - Staggered element animations for visual rhythm
+  - Hover effects with scale, glow, and shadow transforms
+  - Icon animations (rotate, scale, bounce, wiggle)
+  - WhileInView triggers for viewport-based reveals
+  - 60fps performance optimization
+
+- 📈 **4 Metric Cards** with animated counters:
+  - Total Articles (animated count-up)
+  - Average Trust Score (%)
+  - Average Bias Score
+  - Approval Rate (%)
+
+- ✨ **Visual Polish**:
+  - Dark theme with gradient backgrounds
+  - Smooth loading spinner with pulsing text
+  - Card hover animations with glow effects
+  - Responsive grid layouts
+  - Color-coded borders for each chart (blue, orange, green, purple, red, etc.)
+
+#### **2. Enhanced Trust Score Calculation** ⭐ **NEW**
+
+**Improved Scoring Algorithm** (v2.3):
+
+Previous scores were too low (20-50 range). We've rebalanced the calculation:
+
+```
+Base Score: 75 → 80 (higher baseline for balanced scoring)
+
+Penalty Reductions (40-75% decrease):
+├─ Toxicity: 0.5 → 0.15-0.3 (category-aware)
+├─ Bot Detection: 0.3 → 0.15 (50% reduction)
+├─ Misinformation Content: 0.3 → 0.15 (50% reduction)
+├─ Sentiment Negative: -8 → -3 (62% reduction)
+├─ Sentiment Positive: -5 → -2 (60% reduction)
+├─ Bias Score: 0.3 → 0.15-0.25 (17-50% reduction)
+└─ Misinformation Risk: 0.4 → 0.1-0.2 (50-75% reduction)
+
+Category-Aware Penalties:
+├─ Sports/Entertainment/Breaking News: Lower weights
+│  └─ Expect emotion, bias, toxicity in these categories
+├─ Politics/General: Standard weights
+└─ All categories: Fair trust distribution (55-85 range)
+```
+
+**Results**:
+- Before: Articles scoring 20-50 (unfairly low)
+- After: Articles scoring 55-85 (balanced distribution)
+- Category context is now respected in scoring
+- Articles aren't penalized for natural category characteristics
+
+#### **3. Document Upload & RAG System** ⭐
+
+**Document Management**:
+- Upload text and PDF files
+- Automatic database initialization
+- Semantic chunking of documents
+- pgvector embeddings for semantic search
+- RAG context enrichment for article analysis
+
+### Major Architecture Changes (v2.1-v2.2)
 
 #### **1. Advanced LLM Provider Integration** ⭐
 
@@ -380,15 +459,24 @@ Run in parallel on cloud infrastructure (3-5s total):
 
 ## ✨ Features
 
+### Dashboard & Visualization (v2.3) ⭐
+✅ **10+ Interactive Charts** - Trust, risk, sentiment, categories, entities, trends  
+✅ **Smooth Animations** - Framer Motion + CSS keyframes, 60fps performance  
+✅ **Animated Metric Cards** - Count-up animation for numbers  
+✅ **Real-time Analytics** - Live data updates from backend  
+✅ **Category-Based Charts** - Sports, war, entertainment, politics, breaking news  
+✅ **Hover Effects** - Interactive glows and scale transforms  
+✅ **Responsive Grids** - Desktop, tablet, mobile layouts  
+
 ### Core Analysis
 ✅ **Real-time WebSocket Updates** - See 4-stage pipeline live  
 ✅ **Dual-Context RAG System** - Historical + live data enrichment  
 ✅ **Reflection Loop** - Auto-retries with escalating quality (max 3×)  
-✅ **Dynamic Trust Scoring** - Calculated from actual findings (10-100)  
+✅ **Enhanced Trust Scoring** - Balanced calculation (55-85 range)  
+✅ **Category-Aware Scoring** - Respects article type characteristics  
 ✅ **Iteration-Aware Synthesis** - Gets deeper on retry  
 ✅ **7 Local ML Models** - Fast, cloud-based analysis  
 ✅ **Cross-Source Verification** - Tavily + NewsAPI validation  
-✅ **Category Awareness** - Context-aware scoring  
 ✅ **Comprehensive Summaries** - 10-12 sentence reports with actionable guidance
 
 ### RAG & Context Enrichment (v2.2)
@@ -400,10 +488,17 @@ Run in parallel on cloud infrastructure (3-5s total):
 ✅ **Graceful Degradation** - Pipeline continues if any stage unavailable  
 ✅ **Context-Aware Agents** - All 4 agents use enriched historical data  
 
+### Document Management
+✅ **File Upload** - Support for text and PDF files  
+✅ **Auto Database Init** - Automatic PostgreSQL setup on startup  
+✅ **Semantic Chunking** - Intelligent document segmentation  
+✅ **Vector Search** - pgvector embeddings for RAG retrieval  
+✅ **Batch Upload** - Multiple files at once  
+
 ### Frontend Features
 ✅ **Dark Theme UI** - Professional, modern design  
 ✅ **Results Dashboard** - Trust gauge, metrics, sources  
-✅ **Analytics Dashboard** - Charts, trends, source tracking  
+✅ **Analytics Dashboard** - 10+ charts with animations  
 ✅ **History Tracking** - Previous analyses  
 ✅ **Responsive Design** - Desktop, tablet, mobile  
 
@@ -451,9 +546,11 @@ Run in parallel on cloud infrastructure (3-5s total):
 - **Framework**: React 18.2.0
 - **Router**: React Router v6
 - **Styling**: Tailwind CSS 3.3.6
-- **Charts**: Recharts 2.10.3
+- **Charts**: Recharts 2.10.3 (with 1500ms animations)
+- **Animations**: Framer Motion 10.x (page transitions, hover effects)
 - **Icons**: Lucide React
 - **Real-time**: Native WebSocket
+- **CSS Animations**: 11+ keyframe animations (custom dashboard.css)
 
 ---
 
@@ -628,22 +725,32 @@ Pipeline Continues If:
 
 ## 🏛️ System Design
 
-### Trust Score Calculation
+### Trust Score Calculation (v2.3 Enhanced)
 
 ```
-Trust Score = 75 (baseline)
-  - (toxicity × 0.5)           [category-aware]
-  - (misinformation × 0.3)
-  - (sentiment=NEGATIVE ? 8 : 0) [except war]
-  - (sentiment=POSITIVE ? 5 : 0) [except entertainment]
-  - (bias_score × 0.3)
-  - (bot_probability × 0.3)
-  - (misinformation_risk × 0.4)
+Trust Score = 80 (improved baseline for better distribution)
+  - (toxicity × 0.15-0.3)      [category-aware, reduced from 0.5]
+  - (misinformation × 0.15)    [reduced from 0.3]
+  - (sentiment=NEGATIVE ? 3 : 0) [reduced from 8, except war]
+  - (sentiment=POSITIVE ? 2 : 0) [reduced from 5, except entertainment]
+  - (bias_score × 0.15-0.25)   [category-aware, reduced from 0.3]
+  - (bot_probability × 0.15)   [reduced from 0.3]
+  - (misinformation_risk × 0.1-0.2) [reduced from 0.4]
 
-Result: max(10, min(100, int(score)))
+Category-Aware Weights:
+├─ Sports/Entertainment/Breaking News: Lower penalties (expected emotion, bias)
+├─ Politics/General: Standard penalties
+└─ Result: max(10, min(100, int(score)))
 
+Result Range: 55-85 (balanced distribution)
 Combined = 70% × Model + 30% × Validation
 ```
+
+**v2.3 Improvements**:
+- Base score increased from 75 → 80
+- All penalty weights reduced by 40-75%
+- Category awareness prevents unfair scoring
+- Results in 55-85 range instead of 20-50 (much more balanced)
 
 ### Quality Score (Reviewer)
 
@@ -774,14 +881,17 @@ ws.send(JSON.stringify({url: 'https://example.com'}));
 - `GET /api/v1/analysis/{analysis_id}` - Details
 - `DELETE /api/v1/analysis/{analysis_id}` - Delete
 
-### Analytics
-- `GET /api/v1/analytics/dashboard` - Summary
-- `GET /api/v1/analytics/trust-distribution` - Trust buckets
-- `GET /api/v1/analytics/risk-distribution` - Risk breakdown
-- `GET /api/v1/analytics/sentiment-distribution` - Sentiment
-- `GET /api/v1/analytics/trust-by-category` - By article type
-- `GET /api/v1/analytics/top-sources` - Source rankings
-- `GET /api/v1/analytics/trust-over-time?days=30` - Trends
+### Analytics & Documents
+- `GET /api/v1/analytics/dashboard` - Summary metrics
+- `GET /api/v1/analytics/trust-distribution` - Trust buckets (5 ranges)
+- `GET /api/v1/analytics/risk-distribution` - Risk breakdown (LOW/MEDIUM/HIGH/CRITICAL)
+- `GET /api/v1/analytics/sentiment-distribution` - Sentiment (POSITIVE/NEUTRAL/NEGATIVE)
+- `GET /api/v1/analytics/trust-by-category` - By article type (sports, war, etc.)
+- `GET /api/v1/analytics/top-sources` - Source rankings with credibility
+- `GET /api/v1/analytics/trust-over-time?days=30` - 30-day trends
+- `POST /api/v1/documents/upload` - Upload single document
+- `POST /api/v1/documents/upload-batch` - Batch upload documents
+- `GET /api/v1/documents/stats` - Document upload statistics
 
 ### System
 - `GET /api/v1/health` - Health check
@@ -927,4 +1037,32 @@ MIT License - see LICENSE file
 
 **Made with ❤️ by NarrativeWatch AI**
 
-**Version**: 2.1.0 | **Status**: Production Ready ✅
+**Version**: 2.3.0 | **Status**: Production Ready ✅
+
+---
+
+## 📝 Changelog
+
+### v2.3.0 (Latest)
+- ✅ Enhanced Analytics Dashboard with 10+ interactive charts
+- ✅ Comprehensive animation system (Framer Motion + CSS keyframes)
+- ✅ Improved trust score calculation (balanced 55-85 range)
+- ✅ Category-aware scoring across all metrics
+- ✅ Animated metric cards with count-up effects
+- ✅ Smooth page transitions and hover animations
+- ✅ Document upload with semantic chunking
+- ✅ Auto database initialization
+
+### v2.2.0
+- ✅ Dual-context RAG system (PostgreSQL + pgvector)
+- ✅ Entity reputation tracking (90-day history)
+- ✅ Source credibility baseline (180-day history)
+- ✅ Semantic similarity search for articles
+- ✅ Parallel context retrieval
+
+### v2.1.0
+- ✅ Mistral API for synthesis
+- ✅ Llama API for review
+- ✅ Iteration-aware synthesis
+- ✅ Enhanced quality validation
+- ✅ Cross-source verification

@@ -25,6 +25,7 @@ from src.services.cross_source_verification import cross_source_verification
 from src.api.document_routes import upload_document, upload_batch_documents, get_document_statistics
 from src.api.document_routes import DocumentUploadRequest, BatchDocumentUploadRequest
 from src.api.auth_routes import router as auth_router
+from src.api.project_routes import router as project_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,8 +44,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include auth routes
+# Include routers
 app.include_router(auth_router)
+app.include_router(project_router)
 
 class AnalysisRequest(BaseModel):
     url: str = None

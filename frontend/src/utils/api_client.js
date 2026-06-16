@@ -70,3 +70,16 @@ export async function apiDeleteJson(url, options = {}) {
   const response = await apiDelete(url, options)
   return response.json()
 }
+
+export async function apiPut(url, body, options = {}) {
+  return apiCall(url, {
+    ...options,
+    method: 'PUT',
+    body: JSON.stringify(body)
+  })
+}
+
+export async function apiPutJson(url, body, options = {}) {
+  const response = await apiPut(url, body, options)
+  return response.json()
+}

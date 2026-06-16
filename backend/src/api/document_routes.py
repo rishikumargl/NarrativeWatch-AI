@@ -53,20 +53,30 @@ async def upload_document(request: DocumentUploadRequest) -> dict:
             "embedding_stored": bool
         }
     """
-    logger.info(f"Uploading document: {request.title[:50]}")
+    try:
+        logger.info(f"Uploading document: {request.title[:50]}")
 
-    result = await document_ingestion_service.ingest_document(
-        title=request.title,
-        content=request.content,
-        source_url=request.source_url,
-        source_domain=request.source_domain,
-        author=request.author,
-        publish_date=request.publish_date,
-        category=request.category,
-        tags=request.tags
-    )
+        result = await document_ingestion_service.ingest_document(
+            title=request.title,
+            content=request.content,
+            source_url=request.source_url,
+            source_domain=request.source_domain,
+            author=request.author,
+            publish_date=request.publish_date,
+            category=request.category,
+            tags=request.tags
+        )
 
-    return result
+        return result
+    except Exception as e:
+        logger.error(f"Error uploading document: {e}")
+        return {
+            "success": False,
+            "document_id": None,
+            "message": f"Error uploading document: {str(e)}",
+            "embedding_stored": False,
+            "chunks_created": 0
+        }
 
 
 async def upload_batch_documents(request: BatchDocumentUploadRequest) -> dict:
@@ -84,12 +94,24 @@ async def upload_batch_documents(request: BatchDocumentUploadRequest) -> dict:
             "errors": [str]
         }
     """
-    logger.info(f"Uploading batch of {len(request.documents)} documents")
+    try:
+        logger.info(f"Uploading batch of {len(request.documents)} documents")
 
-    documents = [doc.dict() for doc in request.documents]
-    result = await document_ingestion_service.ingest_batch(documents)
+        documents = [doc.dict() for doc in request.documents]
+        result = await document_ingestion_service.ingest_batch(documents)
 
-    return result
+        return result
+    except Exception as e:
+        logger.error(f"Error uploading batch documents: {e}")
+        return {
+            "success": False,
+            "total_documents": len(request.documents),
+            "ingested_count": 0,
+            "skipped_count": 0,
+            "failed_count": len(request.documents),
+            "document_ids": [],
+            "errors": [str(e)]
+        }
 
 
 async def get_document_statistics() -> dict:
@@ -106,7 +128,18 @@ async def get_document_statistics() -> dict:
             "newest_document": str
         }
     """
-    logger.info("Fetching document statistics")
-
-    stats = await document_ingestion_service.get_document_stats()
-    return stats
+    try:
+        logger.info("Fetching document statistics")
+        stats = document_ingestion_service.get_document_stats()  # Sync, not async
+        return stats
+    except Exception as e:
+        logger.error(f"Error fetching document statistics: {e}")
+        return {
+            "total_documents": 0,
+            "unique_sources": 0,
+            "unique_categories": 0,
+            "with_embeddings": 0,
+            "oldest_document": None,
+            "newest_document": None,
+            "error": str(e)
+        }

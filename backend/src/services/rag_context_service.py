@@ -6,7 +6,11 @@ from sqlalchemy import text
 from datetime import datetime, timedelta
 
 from src.database.connection import SessionLocal
-from src.utils.embedding_utils import get_embedding_client
+
+try:
+    from src.utils.embedding_utils import get_embedding_client
+except ImportError:
+    get_embedding_client = None
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +21,12 @@ class RAGContextService:
     def __init__(self):
         """Initialize RAG service with database session."""
         self.db = SessionLocal()
-        self.embedding_client = get_embedding_client()
+        self.embedding_client = None
+        if get_embedding_client:
+            try:
+                self.embedding_client = get_embedding_client()
+            except Exception as e:
+                logger.warning(f"Embedding client initialization failed (non-blocking): {e}")
         logger.info("[OK] RAG context service initialized")
 
     async def get_enriched_context(
@@ -229,6 +238,11 @@ class RAGContextService:
     async def _search_similar_articles(self, article_content: str, top_k: int = 5) -> List[Dict]:
         """Search for similar articles using vector similarity."""
         try:
+            # Check if embedding client is available
+            if not self.embedding_client:
+                logger.warning("Embedding client not available, skipping similarity search")
+                return []
+
             # Generate embedding for the article
             embedding = self.embedding_client.embed_text(article_content)
             if not embedding:

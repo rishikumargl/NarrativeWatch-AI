@@ -91,13 +91,19 @@ export default function ProjectsPage() {
       // Sort by date
       allProjects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setProjects(allProjects);
+
+      // Save all projects to localStorage (sync with DB)
+      localStorage.setItem('narrativewatch_projects', JSON.stringify(allProjects));
     };
 
     loadProjects();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('narrativewatch_projects', JSON.stringify(projects));
+    // Always keep localStorage in sync with current projects state
+    if (projects.length > 0) {
+      localStorage.setItem('narrativewatch_projects', JSON.stringify(projects));
+    }
   }, [projects]);
 
   const handleCreateProject = async () => {
